@@ -8,8 +8,8 @@ import os
 #%%
 # fracs = []
 # for i in range(1, 20):
-#     fracs.append(round(i * 0.05, 2))
-fracs = [.1,]
+#     fracs.append(round(i * 0.05, 2)
+fracs = [.1, 0.3]
 seeds = [0,1]
 
 fracs
@@ -84,15 +84,16 @@ for frac in fracs:
             np.random.seed(seed)
             small_mask = np.random.rand(len(train_df)) < frac
 
-        subdir = f'{data_folder}/{scenario}'
-        if not os.path.isdir(subdir):
-            os.mkdir(subdir)
+        
         preds_dir = f'{preds_folder}/{dataset}'
 
         if not os.path.isdir(preds_dir):
             os.mkdir(preds_dir)
 
         if EVAL == 'kfold':
+            subdir = f'{data_folder}/{scenario}'
+            if not os.path.isdir(subdir):
+                os.mkdir(subdir)
             df_large = train_df[~small_mask]
             df_small = train_df[small_mask]
             for (subdf, name) in (
@@ -103,22 +104,52 @@ for frac in fracs:
                     subdf.iloc[train_index].to_csv(f'{subdir}/{name}_train{i}.csv', header=None, index=None)
                     subdf.iloc[test_index].to_csv(f'{subdir}/{name}_test{i}.csv', header=None, index=None)
         elif EVAL == 'loo':
-            train_large = train_df[~small_mask]
-            train_small = train_df[small_mask]
-            
-            train_large.to_csv(f'{subdir}/{dataset}.train.rating', header=None, index=None, sep='\t')
-            train_small.to_csv(f'{subdir}/{dataset}.train.rating', header=None, index=None, sep='\t')
+            # ===
+            # Make subdirs
+            subdir_large = f'{data_folder}/{scenario}_large'
+            if not os.path.isdir(subdir_large):
+                os.mkdir(subdir_large)
 
+            subdir_small = f'{data_folder}/{scenario}_small'
+            if not os.path.isdir(subdir_small):
+                os.mkdir(subdir_small)
+
+            # ===
+            # Test Data
             test_small_mask = test_df['user'].isin(strikers)
 
             test_large = test_df[~test_small_mask]
             test_small = test_df[test_small_mask]
 
-            test_large.to_csv(f'{subdir}/{dataset}.test.rating', header=None, index=None, sep='\t')
-            test_small.to_csv(f'{subdir}/{dataset}.test.rating', header=None, index=None, sep='\t')
+            old_to_new_large = {}
+            for i, (uid, row) in enumerate(test_large.iterrows()):
+                old_to_new_large[row.user] = i
+            test_large['user'] = test_large['user'].map(old_to_new_large)
+
+            old_to_new_small = {}
+            for i, (uid, row) in enumerate(test_small.iterrows()):
+                old_to_new_small[row.user] = i
+            test_small['user'] = test_small['user'].map(old_to_new_small)
+
+            test_large.to_csv(f'{subdir_large}/{dataset}.test.rating', header=None, index=None, sep='\t')
+            test_small.to_csv(f'{subdir_small}/{dataset}.test.rating', header=None, index=None, sep='\t')
+
+            # ===
+            # Train Data
+
+            train_large = train_df[~small_mask]
+            train_large['user'] = train_large['user'].map(old_to_new_large)
+            train_small = train_df[small_mask]
+            train_small['user'] = train_small['user'].map(old_to_new_small)
+
+            train_large.to_csv(f'{subdir_large}/{dataset}.train.rating', header=None, index=None, sep='\t')
+            train_small.to_csv(f'{subdir_small}/{dataset}.train.rating', header=None, index=None, sep='\t')
+
+            # ===
+            # Negative Data
 
             neg_large = neg_df[~test_small_mask]
             neg_small = neg_df[test_small_mask]
-            neg_large.to_csv(f'{subdir}/{dataset}.negative.rating', header=None, index=None, sep='\t')
-            neg_small.to_csv(f'{subdir}/{dataset}.negative.rating', header=None, index=None, sep='\t')
+            neg_large.to_csv(f'{subdir_large}/{dataset}.test.negative', header=None, index=None, sep='\t')
+            neg_small.to_csv(f'{subdir_small}/{dataset}.test.negative', header=None, index=None, sep='\t')
 #%%
