@@ -9,8 +9,8 @@ import os
 # fracs = []
 # for i in range(1, 20):
 #     fracs.append(round(i * 0.05, 2)
-fracs = [.1, 0.3]
-seeds = [0,1]
+fracs = [0.01, 0.05, .1, .2, .3, .4, 0.5, 0.6, 0.7, 0.8, 0.9, 0.95, 0.99]
+seeds = [0,1,2,3,4]
 
 fracs
 
@@ -23,7 +23,8 @@ dataset = 'pinterest-20'
 kf = KFold(n_splits=10, shuffle=True, random_state=0)
 data_folders = {
     'pinterest-20': '/Users/nick/workspaces/RecSys2019/Conferences/WWW/NeuMF_github/Data',
-    'breast_cancer': './data/breast_cancer'
+    'breast_cancer': './data/breast_cancer',
+    'ml-10m': './data/breast_cancer'
 }
 data_folder = data_folders[dataset]
 preds_folder = './preds'
@@ -104,6 +105,9 @@ for frac in fracs:
                     subdf.iloc[train_index].to_csv(f'{subdir}/{name}_train{i}.csv', header=None, index=None)
                     subdf.iloc[test_index].to_csv(f'{subdir}/{name}_test{i}.csv', header=None, index=None)
         elif EVAL == 'loo':
+            # TODO probably need to reset item indices as well.
+            # should we just use reindex??
+            
             # ===
             # Make subdirs
             subdir_large = f'{data_folder}/{scenario}_large'
@@ -113,6 +117,13 @@ for frac in fracs:
             subdir_small = f'{data_folder}/{scenario}_small'
             if not os.path.isdir(subdir_small):
                 os.mkdir(subdir_small)
+
+            # hack to avoid re-running
+            try:
+                pd.read_csv('{subdir_large}/{dataset}.test.rating')
+                continue
+            except:
+                pass
 
             # ===
             # Test Data
@@ -124,12 +135,12 @@ for frac in fracs:
             old_to_new_large = {}
             for i, (uid, row) in enumerate(test_large.iterrows()):
                 old_to_new_large[row.user] = i
-            test_large['user'] = test_large['user'].map(old_to_new_large)
+            test_large.loc[:,'user'] = test_large['user'].map(old_to_new_large)
 
             old_to_new_small = {}
             for i, (uid, row) in enumerate(test_small.iterrows()):
                 old_to_new_small[row.user] = i
-            test_small['user'] = test_small['user'].map(old_to_new_small)
+            test_small.loc[:, 'user'] = test_small['user'].map(old_to_new_small)
 
             test_large.to_csv(f'{subdir_large}/{dataset}.test.rating', header=None, index=None, sep='\t')
             test_small.to_csv(f'{subdir_small}/{dataset}.test.rating', header=None, index=None, sep='\t')
@@ -138,9 +149,9 @@ for frac in fracs:
             # Train Data
 
             train_large = train_df[~small_mask]
-            train_large['user'] = train_large['user'].map(old_to_new_large)
+            train_large.loc[:, 'user'] = train_large['user'].map(old_to_new_large)
             train_small = train_df[small_mask]
-            train_small['user'] = train_small['user'].map(old_to_new_small)
+            train_small.loc[:, 'user'] = train_small['user'].map(old_to_new_small)
 
             train_large.to_csv(f'{subdir_large}/{dataset}.train.rating', header=None, index=None, sep='\t')
             train_small.to_csv(f'{subdir_small}/{dataset}.train.rating', header=None, index=None, sep='\t')
