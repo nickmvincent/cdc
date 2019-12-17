@@ -38,8 +38,10 @@ for frac in [0.01, 0.05, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 0.95, 0.99
 
 worst = row_dicts[0]['val']
 best = row_dicts[-1]['val']
-# %%
 res = pd.DataFrame(row_dicts)
+res.to_csv('inference_rows.csv', index=None)
+
+# %%
 res['diff_from_worst'] = worst - res['val']
 diff_from_worst_to_best = worst - best
 
