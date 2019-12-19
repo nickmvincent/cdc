@@ -3,6 +3,7 @@
 #%%
 import pandas as pd
 from sklearn import datasets
+import numpy as np
 
 cancer = datasets.load_breast_cancer()
 df = pd.DataFrame(np.c_[cancer['data'], cancer['target']],

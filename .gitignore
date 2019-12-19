@@ -1,5 +1,8 @@
 data/
 .vscode/
+PyTorch-YOLOv3/
+RecSys2019/
+libFM/
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

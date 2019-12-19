@@ -5,14 +5,14 @@ import matplotlib.pyplot as plt
 
 #%%
 dataset = 'pinterest-20'
-dataset = 'breast_cancer'
+# dataset = 'breast_cancer'
 if dataset == 'inference':
     filename = 'inference_rows.csv'
     col = 'val'
     goal = 'minimize'
 
 elif dataset == 'pinterest-20':
-    filename = '/Users/nick/workspaces/RecSys2019/itemknn_pinterest_rows.csv'
+    filename = './RecSys2019/itemknn_pinterest_rows.csv'
     col = 'hitrate5'
     goal = 'maximize'
 

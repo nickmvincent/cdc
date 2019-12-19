@@ -4,34 +4,30 @@ import numpy as np
 from sklearn.model_selection import KFold
 import os
 
-
 #%%
 # fracs = []
 # for i in range(1, 20):
 #     fracs.append(round(i * 0.05, 2)
 fracs = [0.01, 0.05, .1, .2, .3, .4, 0.5, 0.6, 0.7, 0.8, 0.9, 0.95, 0.99]
 seeds = [0,1,2,3,4]
-
 fracs
-
-
 
 #%%
 dataset = 'pinterest-20'
+dataset = 'ml-10m'
 
 
 kf = KFold(n_splits=10, shuffle=True, random_state=0)
 data_folders = {
-    'pinterest-20': '/Users/nick/workspaces/RecSys2019/Conferences/WWW/NeuMF_github/Data',
+    'pinterest-20': './RecSys2019/Conferences/WWW/NeuMF_github/Data',
     'breast_cancer': './data/breast_cancer',
-    'ml-10m': './data/breast_cancer'
+    'ml-10m': './libFM/libfm-1.42.src/data/ml-10m'
 }
 data_folder = data_folders[dataset]
 preds_folder = './preds'
 
 if not os.path.isdir(f'{preds_folder}/{dataset}'):
     os.mkdir(f'{preds_folder}/{dataset}')
-
 
 USER_SPLIT = False
 
@@ -41,9 +37,9 @@ EVAL = 'kfold'
 if dataset == 'breast_cancer':
     dataset_file = 'sklearn_breast_cancer.csv'
     df = pd.read_csv(f'{data_folder}/{dataset_file}')
-elif dataset =='ml-1m':
+elif dataset =='ml-10m':
+    dataset_file = 'ratings.dat'
     df = pd.read_csv(f'{data_folder}/{dataset_file}', header=None, names=['user', 'item', 'rating', 'timestamp'], sep="::")
-    USER_SPLIT = True
 elif dataset =='pinterest-20':
     train_file = 'pinterest-20.train.rating'
     test_file = 'pinterest-20.test.rating'
@@ -59,7 +55,7 @@ df.head(3)
 #%%
 if EVAL == 'kfold':
     hidden_test_df = df.sample(frac=0.25, random_state=0)
-    hidden_test_df.to_csv(f'{data_folder}/{dataset}/hidden_test.csv')
+    hidden_test_df.to_csv(f'{data_folder}/hidden_test.csv')
     train_df = df.drop(hidden_test_df.index)
 else:
     train_df = df
