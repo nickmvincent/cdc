@@ -3,6 +3,7 @@ data/
 PyTorch-YOLOv3/
 RecSys2019/
 libFM/
+.DS_Store
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

@@ -7,8 +7,8 @@ from sklearn.linear_model import LogisticRegression
 
 
 #%%
-data_folder = './data'
-preds_folder = './preds'
+data_folder = '../data'
+preds_folder = '../preds'
 dataset_folder = 'breast_cancer'
 
 #%%
@@ -18,8 +18,9 @@ hidden.head()
 #%%
 #%%
 fracs = []
-for i in range(1, 20):
-    fracs.append(round(i * 0.05, 2))
+# for i in range(1, 20):
+#     fracs.append(round(i * 0.05, 2))
+fracs = [0.01, 0.05, .1, .2, .3, .4, .5]
 fracs
 
 #%%

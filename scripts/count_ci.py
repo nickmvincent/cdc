@@ -15,7 +15,7 @@ def confidence_width(count):
 #%%
 row_dicts = []
 
-df = pd.read_csv('uber-raw-data-apr14.csv')
+df = pd.read_csv('../data/uber-raw-data-apr14.csv')
 df[['Date', 'Time']] = df['Date/Time'].str.split(' ', expand=True)
 
 #%%
@@ -46,7 +46,7 @@ for small_frac in [0.01, 0.05, 0.1, 0.2, 0.3, 0.4, 0.5,]:
     
     large_val = large_widths.mean() / large_frac
     row_dicts.append({
-        'frac': large_frac,
+        'frac': small_frac,
         'val': large_val,
         'company': 'large'
     })
@@ -54,7 +54,7 @@ for small_frac in [0.01, 0.05, 0.1, 0.2, 0.3, 0.4, 0.5,]:
 worst = row_dicts[0]['val']
 best = row_dicts[-1]['val']
 res = pd.DataFrame(row_dicts)
-res.to_csv('inference_rows.csv', index=None)
+res.to_csv('count_ci_rows.csv', index=None)
 
 
 # %%
