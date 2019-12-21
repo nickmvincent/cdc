@@ -23,56 +23,38 @@ df.head()
 
 #%%
 
-for frac in [0.01, 0.05, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 0.95, 0.99]:
-    samp = df.sample(frac=frac)
-    counts = samp.groupby('Date').Lat.count()
-    widths = counts.apply(lambda x: confidence_width(x))
+for small_frac in [0.01, 0.05, 0.1, 0.2, 0.3, 0.4, 0.5,]:
+    large_frac = 1 - small_frac
+    small_samp = df.sample(frac=small_frac)
+    large_samp = df.drop(small_samp.index)
+
+    small_counts = small_samp.groupby('Date').Lat.count()
+    small_widths = small_counts.apply(lambda x: confidence_width(x))
+
+    large_counts = large_samp.groupby('Date').Lat.count()
+    large_widths = large_counts.apply(lambda x: confidence_width(x))
     #print(counts)
     #print(widths)
-    val = widths.mean() / frac
-    print(frac, val)
+    small_val = small_widths.mean() / small_frac
+    print(small_frac, small_val)
     row_dicts.append({
-        'frac': frac,
-        'val': val,
+        'frac': small_frac,
+        'val': small_val,
+        'company': 'small'
+    })
+
+    
+    large_val = large_widths.mean() / large_frac
+    row_dicts.append({
+        'frac': large_frac,
+        'val': large_val,
+        'company': 'large'
     })
 
 worst = row_dicts[0]['val']
 best = row_dicts[-1]['val']
 res = pd.DataFrame(row_dicts)
 res.to_csv('inference_rows.csv', index=None)
-
-# %%
-res['diff_from_worst'] = worst - res['val']
-diff_from_worst_to_best = worst - best
-
-res['copy_ratio'] = res.diff_from_worst / diff_from_worst_to_best
-res['competitor'] = 0
-
-for i, row in res.iterrows():
-    complement = round(1 - row.frac, 2)
-    print(complement)
-    # assumes there's only one match
-    complement_val = res[res.frac == complement].diff_from_worst.values[0]
-    print('cv', complement_val)
-    res.loc[i, 'competitor'] = complement_val
-
-res['transfer_ratio'] = res.diff_from_worst / res.competitor
-res['strike_ratio'] = res.competitor / diff_from_worst_to_best
-
-
-res
-
-# %%
-res.plot(x='frac', y='val')
-
-#%%
-fig, ax = plt.subplots()
-#res.plot(x='frac', y='val', ax=ax)
-res.plot(x='frac', y='copy_ratio', ax=ax)
-res.plot(x='frac', y='strike_ratio', ax=ax)
-res.plot(x='frac', y='transfer_ratio', ax=ax)
-
-
 
 
 # %%
