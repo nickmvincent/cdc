@@ -78,22 +78,22 @@ rdy
 # %%
 # iowc = improvement over worst-case
 # e.g. small's accuracy is 70% and random is 50%, so iowc is 20%
-rdy['small_iowc'] = rdy['small'] - worst
-rdy['large_iowc'] = rdy['large'] - worst
+# bad names here. "over" is "overloaded"
+rdy['small_iow'] = rdy['small'] - worst
+rdy['large_iow'] = rdy['large'] - worst
 
-rdy['large_iobc'] = rdy['large'] - best
+rdy['small_iob'] = rdy['small'] - best
+rdy['large_iob'] = rdy['large'] - best
 
 # max improvement over worst-case
-max_iowc = best - worst
+max_iow = best - worst
 
-rdy['duplication'] = rdy.small_iowc / max_iowc
-rdy['transfer'] = rdy.small_iowc / rdy.large_iowc
-
+rdy['duplication'] = rdy.small_iow / max_iow
+rdy['transfer'] = rdy.small_iow / rdy.large_iow
 rdy.head(3)
 
 #%%
-rdy['deletion'] = worst / rdy.large_iowc
-#rdy['deletion'] = rdy.large_iobc / 
+rdy['deletion'] = worst / rdy.large_iow
 rdy
 
 #%%
@@ -105,21 +105,34 @@ rdy.plot(x='frac', y='duplication', ax=ax)
 rdy.plot(x='frac', y='deletion', ax=ax)
 rdy.plot(x='frac', y='transfer', ax=ax)
 
+#%%
+fig, ax = plt.subplots()
+rdy.plot(x='frac', y='small_iow', ax=ax)
+rdy.plot(x='frac', y='large_iow', ax=ax)
+plt.axhline(max_iow)
+
+#%%
+cols = [
+    'small_iow', 'large_iow', 
+]
+for col in cols:
+    rdy.loc[:, f'norm_{col}'] = rdy[col] / max_iow
+
+rdy['norm_large_over_small'] = rdy['small_iow'] / rdy['large_iow']
+
+
+fig, ax = plt.subplots()
+rdy.plot(x='frac', y='norm_small_iow', ax=ax)
+rdy.plot(x='frac', y='norm_large_iow', ax=ax)
+rdy.plot(x='frac', y='norm_large_over_small', ax=ax)
+
 # %%
 fig, ax = plt.subplots()
-
 rdy.plot(x='frac', y='small', ax=ax, label='small')
 rdy.plot(x='frac', y='large', ax=ax)
 
-
-
-
-#%%
-rdy
-
 #%%
 baselines
-
 
 #%%
 if False:
