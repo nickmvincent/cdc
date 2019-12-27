@@ -7,6 +7,11 @@ import os
 #labels = list(range(0,4))
 labels = [2, 3]
 print(labels)
+new_labels = {}
+for i, label in enumerate(labels):
+    new_labels[label] = i
+
+print(new_labels)
 
 #%%
 newdir = 'custom'
@@ -45,12 +50,16 @@ for folder, txt_file in configs:
                 w.write(r.read())
         # probably slow, but fast to code. Change if needed.
         df = pd.read_csv(path, header=None, sep=' ')
-        #print(df[0])
+        
+        # we can throw away labels for classes we don't care about.
         lines_to_keep = df[0].isin(labels)
-        #print(lines_to_keep)
+
         if any(lines_to_keep):
             kept.append(f'data/{new_img_file}')
-            df[lines_to_keep].to_csv(new_label_file, index=None, header=None, sep=' ')
+            df = df[lines_to_keep]
+            #print(df[0])
+            df[0] = df[0].map(new_labels).astype(int)
+            df.to_csv(new_label_file, index=None, header=None, sep=' ')
         else:
             n_ditched += 1
         print(len(kept), n_ditched)

@@ -22,6 +22,11 @@ elif dataset == 'breast_cancer':
     col = 'hidden_score'
     goal = 'maximize'
 
+elif dataset == 'ml-10m':
+    filename = 'breast_cancer_rows.csv'
+    col = 'hidden_score'
+    goal = 'maximize'
+
 df = pd.read_csv(filename)
 if goal == 'minimize':
     worst = df[col].max()
