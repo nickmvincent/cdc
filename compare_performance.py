@@ -2,21 +2,28 @@
 #%%
 import pandas as pd
 import matplotlib.pyplot as plt
+import seaborn as sns
 
 #%%
 datasets = [
-    #'pinterest-20',
-    #'inference',
+    'pinterest-20',
+    'count_ci',
     'breast_cancer',
     #'ml-10m',
-    #'cifar10',
+    'cifar10',
     #'toxic'
 ]
+dataset_cols = {
+    'pinterest-20': 'Hit Rate @ 5',
+    'count_ci': 'Poisson CI',
+    'breast_cancer': 'Test Accuracy',
+    'cifar10': 'Test Accuracy',
+}
 rdy_dfs = {}
 for dataset in datasets:
     print(dataset)
-    if dataset == 'inference':
-        filename = 'inference_rows.csv'
+    if dataset == 'count_ci':
+        filename = 'results/count_ci_rows.csv'
         col = 'val'
         goal = 'minimize'
     elif dataset == 'pinterest-20':
@@ -24,11 +31,15 @@ for dataset in datasets:
         col = 'hitrate5'
         goal = 'maximize'
     elif dataset == 'breast_cancer':
-        filename = 'breast_cancer_rows.csv'
+        filename = 'results/breast_cancer_rows.csv'
         col = 'hidden_score'
         goal = 'maximize'
+    elif dataset == 'cifar10':
+        filename = 'results/cifar_rows.csv'
+        col = 'valid_acc'
+        goal = 'maximize'
     elif dataset == 'ml-10m':
-        filename = 'breast_cancer_rows.csv'
+        filename = 'results/...'
         col = 'hidden_score'
         goal = 'maximize'
 
@@ -44,6 +55,8 @@ for dataset in datasets:
     baselines = df[df.frac.isna()]
     df = df.drop(baselines.index)
     print('baselines\n', baselines, '\n===')
+
+    print('best and worst', best, worst, '\n===')
 
 
     complements = {}
@@ -79,8 +92,8 @@ for dataset in datasets:
     rdy['small_iow'] = rdy['small'] - worst
     rdy['large_iow'] = rdy['large'] - worst
 
-    rdy['small_iob'] = rdy['small'] - best
-    rdy['large_iob'] = rdy['large'] - best
+    # rdy['small_iob'] = rdy['small'] - best
+    # rdy['large_iob'] = rdy['large'] - best
 
     # max improvement over worst-case
     max_iow = best - worst
@@ -88,7 +101,7 @@ for dataset in datasets:
     rdy['duplication'] = rdy.small_iow / max_iow
     rdy['transfer'] = rdy.small_iow / rdy.large_iow
     rdy['transfer'][rdy.frac > 0.5] = float('nan')
-    rdy['deletion'] = worst / rdy.large_iow
+    rdy['deletion'] = 1 - rdy.large_iow / max_iow
 
     print('rdy\n', rdy.head(3))
 
@@ -127,24 +140,35 @@ for dataset in datasets:
 
 
 # %%
-rdy_dfs.keys()
-
-
-# %%
+sns.set_style('whitegrid')
 nrows = len(rdy_dfs)
-print(nrows)
-fig, ax = plt.subplots(nrows, 2)
+#nrows = 2
+fig, ax = plt.subplots(nrows, 2, figsize=(6.5, 8), sharex=True)
 
 #_, metrics_ax = plt.subplots(nrows, 1)
 
 for i, (k, v) in enumerate(rdy_dfs.items()):
-    v.plot(x='frac', y='small', ax=ax[i, 0], label='small')
-    v.plot(x='frac', y='large', ax=ax[i, 0], label='large')
+    v.plot(x='frac', y='small', ax=ax[i, 0], label='small', color='r')
+    v.plot(x='frac', y='large', ax=ax[i, 0], label='large', color='k')
     v.plot(x='frac', y='duplication', ax=ax[i, 1])
     v.plot(x='frac', y='deletion', ax=ax[i, 1])
     v.plot(x='frac', y='transfer', ax=ax[i, 1])
+    ax[i, 0].set_ylabel(dataset_cols[k])
+    fig.subplots_adjust(hspace=0.5, wspace=0.5)
+    ax[i, 1].set_ylabel('PI Ratio')
+    ax[i, 0].set_title(f'{k} Performance')
+    ax[i, 1].set_title(f'{k} CDC Effectivness')
+
+    if i != 0:
+        ax[i, 0].get_legend().remove()
+        ax[i, 1].get_legend().remove()
+    #plt.suptitle('CDC Simulations')
+plt.savefig('reports/performance.png', dpi=300)
 
     
 
+
+# %%
+rdy_dfs['breast_cancer']
 
 # %%
