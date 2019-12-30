@@ -4,11 +4,11 @@ pre = './libFM/libfm-1.42.src'
 
 fracs = [
     0.01,
-    #0.05, .1, .2, .3, .4, .5
+    0.05, .1, .2, .3, .4, .5
 ]
 seeds = [
     0, 1,
-    #2, 3, 4
+    2, 3, 4
 ]
 
 for frac in fracs:
@@ -17,7 +17,7 @@ for frac in fracs:
         libfm_call = f'{pre}/bin/libFM'
         for company in [
             'small',
-            #'large'
+            'large'
         ]:
             scenario = f'{frac}_random{seed}'
             train_data = f'{pre}/data/ml-10m/{scenario}/{company}_train0.csv'
@@ -40,6 +40,15 @@ for frac in fracs:
             dim = '1,1,16'
             iterations = 30
             preds_subdir = f'{pre}/preds/ml-10m/{scenario}'
+
+            for sub in [
+                f'{pre}/preds/',
+                f'{pre}/preds/ml-10m/',
+            ]:
+                if not os.path.isdir(sub):
+                    os.mkdir(sub)
+
+
             if not os.path.isdir(preds_subdir):
                 os.mkdir(preds_subdir)
             outfile = f'{preds_subdir}/{company}_test0.preds'
