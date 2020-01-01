@@ -12,7 +12,7 @@ def rmse_score(y, yhat):
     return sqrt(mean_squared_error(y, yhat))
 
 #%%
-pre = 'libfm/libfm-1.42.src'
+pre = 'libFM/libfm-1.42.src'
 #%%
 
 seeds = [0,1,2,3,4]
@@ -20,7 +20,7 @@ fracs = ['0.01', '0.05', '0.1', '0.2', '0.3', '0.4', '0.5']
 rows = []
 for frac in fracs:
     for seed in seeds:
-        scenario = f'{frac}_random'
+        scenario = f'{frac}_random{seed}'
         for entity in [
             'small', 
             'large'
