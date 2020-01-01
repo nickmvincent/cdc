@@ -9,7 +9,7 @@ from scipy.sparse import hstack, save_npz
 # fracs = []
 # for i in range(1, 20):
 #     fracs.append(round(i * 0.05, 2)
-fracs = [0.01, 0.05, .1, .2, .3, .4, 0.5, 0.6, 0.7, 0.8, 0.9, 0.95, 0.99]
+fracs = [0.01, 0.05, .1, .2, .3, .4, 0.5,]
 seeds = [0,1,2,3,4]
 seeds = [0]
 fracs
@@ -57,7 +57,9 @@ elif dataset =='pinterest-20':
     EVAL = 'loo'
 elif dataset == 'toxic':
     dataset_file = 'train.csv'
-    df = pd.read_csv(f'{data_folder}/{dataset_file}').fillna(' ')
+    df = pd.read_csv(f'{data_folder}/{dataset_file}').fillna(' ').sample(frac=0.1)
+    class_names = ['toxic', 'severe_toxic', 'obscene', 'threat', 'insult', 'identity_hate']
+    df['binary_label'] = df[class_names].any(axis=1)
     PREPROCESS = True
     
 
@@ -112,7 +114,10 @@ for frac in fracs:
             ):
                 if PREPROCESS == True:
                     train_text = subdf['comment_text']
+                    train_labels = subdf['binary_label']
                     test_text = hidden_test_df['comment_text']
+                    test_labels = hidden_test_df['binary_label']
+
                     word_vectorizer = TfidfVectorizer(
                         sublinear_tf=True,
                         strip_accents='unicode',
@@ -138,12 +143,13 @@ for frac in fracs:
                     train_features = hstack([train_char_features, train_word_features])
                     test_features = hstack([test_char_features, test_word_features])
                     save_npz(f'{subdir}/{name}_train', train_features)
-                    if not os.path.exists(f'{data_folder}/hidden_test_processed'):
-                        save_npz(f'{data_folder}/hidden_test_processed', test_features)
-                    #for i, (train_index, test_index) in enumerate(kf.split(train_features)):
-                    #    train_features[train_index].tofile(f'{subdir}/{name}_train{i}.csv', sep='\n', format='%s')
-                    #    train_features[test_index].to_csv(f'{subdir}/{name}_test{i}.csv', sep='\n', format='%s')
-                    #    break
+                    np.savez(f'{subdir}/{name}_train_labels', labels=train_labels.values)
+                    #f not os.path.exists(f'{data_folder}/hidden_test_processed'):
+                    save_npz(f'{subdir}/{name}_hidden', test_features)
+                    np.savez(f'{subdir}/{name}_hidden_labels', labels=test_labels.values)
+
+                    #TODO folds
+
                 else:
                     for i, (train_index, test_index) in enumerate(kf.split(subdf)):
                         subdf.iloc[train_index].to_csv(f'{subdir}/{name}_train{i}.csv', header=None, index=None)
