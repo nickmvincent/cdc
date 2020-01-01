@@ -11,7 +11,6 @@ from scipy.sparse import hstack, save_npz
 #     fracs.append(round(i * 0.05, 2)
 fracs = [0.01, 0.05, .1, .2, .3, .4, 0.5,]
 seeds = [0,1,2,3,4]
-seeds = [0]
 fracs
 
 #%%
@@ -57,7 +56,7 @@ elif dataset =='pinterest-20':
     EVAL = 'loo'
 elif dataset == 'toxic':
     dataset_file = 'train.csv'
-    df = pd.read_csv(f'{data_folder}/{dataset_file}').fillna(' ').sample(frac=0.1)
+    df = pd.read_csv(f'{data_folder}/{dataset_file}').fillna(' ')
     class_names = ['toxic', 'severe_toxic', 'obscene', 'threat', 'insult', 'identity_hate']
     df['binary_label'] = df[class_names].any(axis=1)
     PREPROCESS = True

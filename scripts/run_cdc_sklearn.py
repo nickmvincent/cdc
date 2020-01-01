@@ -17,7 +17,7 @@ dataset = 'toxic'
 
 #%%
 if dataset == 'toxic':
-    hidden = load_npz(f'{data_folder}/{dataset}/hidden_test_processed.npz')
+    pass#hidden = load_npz(f'{data_folder}/{dataset}/hidden_test_processed.npz')
 else:
     hidden = pd.read_csv(f'{data_folder}/{dataset}/hidden_test.csv', index_col=0)
     print(hidden.head(3))
@@ -94,17 +94,5 @@ for frac in fracs:
 
 res = pd.DataFrame(row_dicts)
 res.to_csv(f'{dataset}_rows.csv')
-
-#%%
-res
-# %%
-res[res.company == 'small'].groupby('frac').mean().plot(y='hidden_score')
-
-#%%
-#res[(res.co == 'small') & (res.seed == 3)].groupby('frac').mean().plot(y='hidden_score')
-
-
-#%% 
-res[res.company == 'large'].groupby('frac').mean().plot(y='hidden_score')
 
 # %%
