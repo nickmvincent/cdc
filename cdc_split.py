@@ -100,6 +100,7 @@ for frac in fracs:
                 for i, (train_index, test_index) in enumerate(kf.split(subdf)):
                     subdf.iloc[train_index].to_csv(f'{subdir}/{name}_train{i}.csv', header=None, index=None)
                     subdf.iloc[test_index].to_csv(f'{subdir}/{name}_test{i}.csv', header=None, index=None)
+                    break
         elif EVAL == 'loo':
             # TODO probably need to reset item indices as well.
             # should we just use reindex??

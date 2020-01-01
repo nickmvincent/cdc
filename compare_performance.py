@@ -9,7 +9,7 @@ datasets = [
     'pinterest-20',
     'count_ci',
     'breast_cancer',
-    #'ml-10m',
+    'ml-10m',
     'cifar10',
     #'toxic'
 ]
@@ -17,6 +17,7 @@ dataset_cols = {
     'pinterest-20': 'Hit Rate @ 5',
     'count_ci': 'Poisson CI',
     'breast_cancer': 'Test Accuracy',
+    'ml-10m': 'RMSE',
     'cifar10': 'Test Accuracy',
 }
 rdy_dfs = {}
@@ -39,9 +40,9 @@ for dataset in datasets:
         col = 'valid_acc'
         goal = 'maximize'
     elif dataset == 'ml-10m':
-        filename = 'results/...'
-        col = 'hidden_score'
-        goal = 'maximize'
+        filename = 'results/ml-10m_rows.csv'
+        col = 'rmse'
+        goal = 'minimize'
 
     df = pd.read_csv(filename)
     if goal == 'minimize':
@@ -151,13 +152,16 @@ for i, (k, v) in enumerate(rdy_dfs.items()):
     v.plot(x='frac', y='small', ax=ax[i, 0], label='small', color='r')
     v.plot(x='frac', y='large', ax=ax[i, 0], label='large', color='k')
     v.plot(x='frac', y='duplication', ax=ax[i, 1])
-    v.plot(x='frac', y='deletion', ax=ax[i, 1])
+    #v.plot(x='frac', y='deletion', ax=ax[i, 1])
     v.plot(x='frac', y='transfer', ax=ax[i, 1])
     ax[i, 0].set_ylabel(dataset_cols[k])
     fig.subplots_adjust(hspace=0.5, wspace=0.5)
     ax[i, 1].set_ylabel('PI Ratio')
     ax[i, 0].set_title(f'{k} Performance')
     ax[i, 1].set_title(f'{k} CDC Effectivness')
+
+    ax[i, 1].text(0.5, 0.5, round(v['transfer_bonus'].max(), 2))
+    print(k, round(v['transfer_bonus'].max(), 2))
 
     if i != 0:
         ax[i, 0].get_legend().remove()
@@ -168,7 +172,19 @@ plt.savefig('reports/performance.png', dpi=300)
     
 
 
+
 # %%
-rdy_dfs['breast_cancer']
+rdy = rdy_dfs['ml-10m']
+fig, ax = plt.subplots()
+rdy.plot(x='frac', y='small_iow', ax=ax)
+rdy.plot(x='frac', y='large_iow', ax=ax)
+rdy.transfer_bonus
+#plt.axhline(max_iow)
+
+# %%
+rdy = rdy_dfs['pinterest-20']
+fig, ax = plt.subplots()
+rdy.plot(x='frac', y='small_iow', ax=ax)
+rdy.plot(x='frac', y='large_iow', ax=ax)
 
 # %%

@@ -22,7 +22,7 @@ for frac in fracs:
             scenario = f'{frac}_random{seed}'
             train_data = f'{pre}/data/ml-10m/{scenario}/{company}_train0.csv'
             formatted_train_data = f'{train_data}.libfm'
-            test_data = f'{pre}/data/ml-10m/{scenario}/{company}s_test0.csv'
+            test_data = f'{pre}/data/ml-10m/{scenario}/{company}_test0.csv'
             formatted_test_data = f'{test_data}.libfm'
             target_col = 2
             delete_col = 3

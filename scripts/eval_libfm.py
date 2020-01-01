@@ -12,7 +12,7 @@ def rmse_score(y, yhat):
     return sqrt(mean_squared_error(y, yhat))
 
 #%%
-pre = 'libfm/libfm-1.42.src/'
+pre = 'libfm/libfm-1.42.src'
 #%%
 
 seeds = [0,1,2,3,4]
@@ -42,8 +42,9 @@ for frac in fracs:
             row = {
                 'frac': frac,
                 'scenario': scenario,
-                'entity': entity,
-                'rmse': rmse_score(truth.rating, preds.rating)
+                'company': entity,
+                'rmse': rmse_score(truth.rating, preds.rating),
+                'seed': seed,
             }
             # for score in [
             #     rmse_score,
