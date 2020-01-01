@@ -3,25 +3,28 @@ import pandas as pd
 import numpy as np
 from sklearn.model_selection import KFold
 import os
-
+from sklearn.feature_extraction.text import TfidfVectorizer
+from scipy.sparse import hstack, save_npz
 #%%
 # fracs = []
 # for i in range(1, 20):
 #     fracs.append(round(i * 0.05, 2)
 fracs = [0.01, 0.05, .1, .2, .3, .4, 0.5, 0.6, 0.7, 0.8, 0.9, 0.95, 0.99]
 seeds = [0,1,2,3,4]
+seeds = [0]
 fracs
 
 #%%
 dataset = 'pinterest-20'
 dataset = 'ml-10m'
+dataset = 'toxic'
 
 
 kf = KFold(n_splits=10, shuffle=True, random_state=0)
 data_folders = {
     'pinterest-20': './RecSys2019/Conferences/WWW/NeuMF_github/Data',
     'breast_cancer': './data/breast_cancer',
-    'ml-10m': './libFM/libfm-1.42.src/data/ml-10m'
+    'ml-10m': './libFM/libfm-1.42.src/data/ml-10m',
     'toxic': './data/toxic',
 }
 data_folder = data_folders[dataset]
@@ -134,10 +137,13 @@ for frac in fracs:
 
                     train_features = hstack([train_char_features, train_word_features])
                     test_features = hstack([test_char_features, test_word_features])
-                    for i, (train_index, test_index) in enumerate(kf.split(train_features)):
-                        train_features[train_index].tofile(f'{subdir}/{name}_train{i}.csv', sep='\n', format='%s')
-                        train_features[test_index].to_csv(f'{subdir}/{name}_test{i}.csv', sep='\n', format='%s')
-                        break
+                    save_npz(f'{subdir}/{name}_train', train_features)
+                    if not os.path.exists(f'{data_folder}/hidden_test_processed'):
+                        save_npz(f'{data_folder}/hidden_test_processed', test_features)
+                    #for i, (train_index, test_index) in enumerate(kf.split(train_features)):
+                    #    train_features[train_index].tofile(f'{subdir}/{name}_train{i}.csv', sep='\n', format='%s')
+                    #    train_features[test_index].to_csv(f'{subdir}/{name}_test{i}.csv', sep='\n', format='%s')
+                    #    break
                 else:
                     for i, (train_index, test_index) in enumerate(kf.split(subdf)):
                         subdf.iloc[train_index].to_csv(f'{subdir}/{name}_train{i}.csv', header=None, index=None)
