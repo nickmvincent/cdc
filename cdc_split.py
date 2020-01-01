@@ -22,6 +22,7 @@ data_folders = {
     'pinterest-20': './RecSys2019/Conferences/WWW/NeuMF_github/Data',
     'breast_cancer': './data/breast_cancer',
     'ml-10m': './libFM/libfm-1.42.src/data/ml-10m'
+    'toxic': './data/toxic',
 }
 data_folder = data_folders[dataset]
 preds_folder = './preds'
@@ -32,8 +33,10 @@ if not os.path.isdir(f'{preds_folder}/{dataset}'):
 USER_SPLIT = False
 
 EVAL = 'kfold'
+PREPROCESS = False
 # other options include other loo (leave-one-out), other kfold, ...
 
+# @FUTURE: could be abstracted into config files...
 if dataset == 'breast_cancer':
     dataset_file = 'sklearn_breast_cancer.csv'
     df = pd.read_csv(f'{data_folder}/{dataset_file}')
@@ -49,6 +52,12 @@ elif dataset =='pinterest-20':
     neg_df = pd.read_csv(f'{data_folder}/{neg_file}', header=None, sep="\t")
     USER_SPLIT = True
     EVAL = 'loo'
+elif dataset == 'toxic':
+    dataset_file = 'train.csv'
+    df = pd.read_csv(f'{data_folder}/{dataset_file}').fillna(' ')
+    PREPROCESS = True
+    
+
 df.head(3)
 
 
@@ -59,6 +68,7 @@ if EVAL == 'kfold':
     train_df = df.drop(hidden_test_df.index)
 else:
     train_df = df
+
 
 #%%
 if USER_SPLIT:
@@ -97,10 +107,42 @@ for frac in fracs:
                 (df_large, 'large'),
                 (df_small, 'small'),
             ):
-                for i, (train_index, test_index) in enumerate(kf.split(subdf)):
-                    subdf.iloc[train_index].to_csv(f'{subdir}/{name}_train{i}.csv', header=None, index=None)
-                    subdf.iloc[test_index].to_csv(f'{subdir}/{name}_test{i}.csv', header=None, index=None)
-                    break
+                if PREPROCESS == True:
+                    train_text = subdf['comment_text']
+                    test_text = hidden_test_df['comment_text']
+                    word_vectorizer = TfidfVectorizer(
+                        sublinear_tf=True,
+                        strip_accents='unicode',
+                        analyzer='word',
+                        token_pattern=r'\w{1,}',
+                        stop_words='english',
+                        ngram_range=(1, 1),
+                        max_features=10000)
+                    word_vectorizer.fit(train_text)
+                    train_word_features = word_vectorizer.transform(train_text)
+                    test_word_features = word_vectorizer.transform(test_text)
+                    char_vectorizer = TfidfVectorizer(
+                        sublinear_tf=True,
+                        strip_accents='unicode',
+                        analyzer='char',
+                        stop_words='english',
+                        ngram_range=(2, 6),
+                        max_features=50000)
+                    char_vectorizer.fit(train_text)
+                    train_char_features = char_vectorizer.transform(train_text)
+                    test_char_features = char_vectorizer.transform(test_text)
+
+                    train_features = hstack([train_char_features, train_word_features])
+                    test_features = hstack([test_char_features, test_word_features])
+                    for i, (train_index, test_index) in enumerate(kf.split(train_features)):
+                        train_features[train_index].tofile(f'{subdir}/{name}_train{i}.csv', sep='\n', format='%s')
+                        train_features[test_index].to_csv(f'{subdir}/{name}_test{i}.csv', sep='\n', format='%s')
+                        break
+                else:
+                    for i, (train_index, test_index) in enumerate(kf.split(subdf)):
+                        subdf.iloc[train_index].to_csv(f'{subdir}/{name}_train{i}.csv', header=None, index=None)
+                        subdf.iloc[test_index].to_csv(f'{subdir}/{name}_test{i}.csv', header=None, index=None)
+                        break
         elif EVAL == 'loo':
             # TODO probably need to reset item indices as well.
             # should we just use reindex??
