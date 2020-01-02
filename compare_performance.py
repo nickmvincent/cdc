@@ -8,23 +8,28 @@ import seaborn as sns
 datasets = [
     'pinterest-20',
     'count_ci',
-    'breast_cancer',
+    #'breast_cancer',
     'ml-10m',
+    #'ml-10m_32_50',
     'cifar10',
-    #'toxic'
+    'toxic'
 ]
 dataset_cols = {
     'pinterest-20': 'Hit Rate @ 5',
     'count_ci': 'Poisson CI',
-    'breast_cancer': 'Test Accuracy',
+    #'breast_cancer': 'Test Accuracy',
     'ml-10m': 'RMSE',
+    'ml-10m_32_50': 'RMSE',
     'cifar10': 'Test Accuracy',
+    'toxic': 'AUR'
 }
 rdy_dfs = {}
+achieves_at_rows = []
+transfer_bonus_dfs = []
 for dataset in datasets:
     print(dataset)
+    filename = f'results/{dataset}_rows.csv'
     if dataset == 'count_ci':
-        filename = 'results/count_ci_rows.csv'
         col = 'val'
         goal = 'minimize'
     elif dataset == 'pinterest-20':
@@ -39,10 +44,12 @@ for dataset in datasets:
         filename = 'results/cifar_rows.csv'
         col = 'valid_acc'
         goal = 'maximize'
-    elif dataset == 'ml-10m':
-        filename = 'results/ml-10m_rows.csv'
+    elif dataset == 'ml-10m' or dataset == 'ml-10m_32_50':
         col = 'rmse'
         goal = 'minimize'
+    elif dataset == 'toxic':
+        col = 'hidden_score'
+        goal = 'maximize'
 
     df = pd.read_csv(filename)
     if goal == 'minimize':
@@ -112,16 +119,28 @@ for dataset in datasets:
     fig, ax = plt.subplots()
     rdy.plot(x='frac', y='transfer_bonus', ax=ax)
 
-    # fig, ax = plt.subplots()
-    # rdy.plot(x='frac', y='dup_bonus', ax=ax)
-
-    # fig, ax = plt.subplots()
-    # rdy.plot(x='frac', y='small_iow', ax=ax)
-    # rdy.plot(x='frac', y='large_iow', ax=ax)
-    # plt.axhline(max_iow)
 
     rdy_dfs[dataset] = rdy
 
+    row = {
+        'dataset': dataset,
+    }
+    for thresh in [0.5, 0.6, 0.7, 0.8, 0.9]:
+        val = rdy[rdy.duplication > thresh].frac.min()
+        row[f'achieves_{thresh}'] = val
+        # achieves_at_rows.append({
+        #     'dataset': dataset,
+        #     'thresh': thresh,
+        #     'achieves_at': achieves_at
+        # })
+        # print('achieves_at', achieves_at)
+    achieves_at_rows.append(row)
+
+    tmp_transfer = rdy[rdy.frac <= 0.5]
+    tmp_transfer['dataset'] = dataset
+    transfer_bonus_dfs.append(
+        tmp_transfer[['dataset', 'transfer_bonus']]
+    )
     if False:
         # sanity check - can see if this looks the same as prev
         cols = [
@@ -137,6 +156,15 @@ for dataset in datasets:
         rdy.plot(x='frac', y='norm_small_iow', ax=ax)
         rdy.plot(x='frac', y='norm_large_iow', ax=ax)
         rdy.plot(x='frac', y='norm_large_over_small', ax=ax)
+
+#%%
+transfer_bonus_df = pd.concat(transfer_bonus_dfs, sort=False)
+transfer_bonus_df.groupby('frac').transfer_bonus.max()
+
+#%%
+achieves_at_df = pd.DataFrame(achieves_at_rows)
+achieves_at_df
+
 
 
 
@@ -169,6 +197,29 @@ for i, (k, v) in enumerate(rdy_dfs.items()):
     #plt.suptitle('CDC Simulations')
 plt.savefig('reports/performance.png', dpi=300)
 
+#%%
+print(nrows)
+print(len(rdy_dfs))
+fig, ax = plt.subplots(nrows, 1, figsize=(6, 6), sharex=True)
+for i, (k, v) in enumerate(rdy_dfs.items()):
+    v.plot(x='frac', y='transfer_bonus', ax=ax[i])
+    # #v.plot(x='frac', y='deletion', ax=ax[i, 1])
+    # ax[i, 0].set_ylabel(dataset_cols[k])
+    # fig.subplots_adjust(hspace=0.5, wspace=0.5)
+    # ax[i, 1].set_ylabel('PI Ratio')
+    ax[i].set_title(f'{k} Transfer Bonus')
+    ax[i].set_xlim(0, 0.5)
+    # ax[i, 1].set_title(f'{k} CDC Effectivness')
+
+    # ax[i, 1].text(0.5, 0.5, round(v['transfer_bonus'].max(), 2))
+    # print(k, round(v['transfer_bonus'].max(), 2))
+
+    # if i != 0:
+    #     ax[i, 0].get_legend().remove()
+    #     ax[i, 1].get_legend().remove()
+    #plt.suptitle('CDC Simulations')
+plt.savefig('reports/transfer_bonus.png', dpi=300)
+
     
 
 
@@ -181,10 +232,6 @@ rdy.plot(x='frac', y='large_iow', ax=ax)
 rdy.transfer_bonus
 #plt.axhline(max_iow)
 
-# %%
-rdy = rdy_dfs['pinterest-20']
-fig, ax = plt.subplots()
-rdy.plot(x='frac', y='small_iow', ax=ax)
-rdy.plot(x='frac', y='large_iow', ax=ax)
+
 
 # %%
