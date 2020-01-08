@@ -93,6 +93,6 @@ for frac in fracs:
                     })
 
 res = pd.DataFrame(row_dicts)
-res.to_csv(f'{dataset}_rows.csv')
+res.to_csv(f'results/{dataset}_rows.csv')
 
 # %%

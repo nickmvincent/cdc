@@ -7,10 +7,12 @@ import seaborn as sns
 #%%
 datasets = [
     'pinterest-20',
-    'count_ci',
+    #'count_ci',
     #'breast_cancer',
-    'ml-10m',
+    #'ml-10m',
     #'ml-10m_32_50',
+    'ml-10m_64_100',
+    #'ml-10m_2x'
     'cifar10',
     'toxic'
 ]
@@ -20,6 +22,8 @@ dataset_cols = {
     #'breast_cancer': 'Test Accuracy',
     'ml-10m': 'RMSE',
     'ml-10m_32_50': 'RMSE',
+    'ml-10m_64_100': 'RMSE',
+    'ml-10m_2x': 'RMSE',
     'cifar10': 'Test Accuracy',
     'toxic': 'AUR'
 }
@@ -44,7 +48,7 @@ for dataset in datasets:
         filename = 'results/cifar_rows.csv'
         col = 'valid_acc'
         goal = 'maximize'
-    elif dataset == 'ml-10m' or dataset == 'ml-10m_32_50':
+    elif dataset == 'ml-10m' or dataset == 'ml-10m_64_100':
         col = 'rmse'
         goal = 'minimize'
     elif dataset == 'toxic':
@@ -87,10 +91,14 @@ for dataset in datasets:
 
     # agg different seeds across each frac / company combo
     tmp = df_merged.groupby(['frac', 'company']).mean()
+
+    std = df_merged.groupby(['frac', 'company']).std().unstack()[col]
     print('tmp', tmp, '\n===')
     # unstack and grab column of interest only
     rdy = tmp.unstack()[col]
     rdy['frac'] = rdy.index
+    rdy['small_std'] = std['small']
+    rdy['large_std'] = std['large']
     
     #df_merged[(df_merged.company == 'small') & (df_merged.p_change <0)]
 
@@ -177,11 +185,11 @@ fig, ax = plt.subplots(nrows, 2, figsize=(6.5, 8), sharex=True)
 #_, metrics_ax = plt.subplots(nrows, 1)
 
 for i, (k, v) in enumerate(rdy_dfs.items()):
-    v.plot(x='frac', y='small', ax=ax[i, 0], label='small', color='r')
-    v.plot(x='frac', y='large', ax=ax[i, 0], label='large', color='k')
-    v.plot(x='frac', y='duplication', ax=ax[i, 1])
-    #v.plot(x='frac', y='deletion', ax=ax[i, 1])
-    v.plot(x='frac', y='transfer', ax=ax[i, 1])
+    print(v['small_std'])
+    v.plot(x='frac', y='small', yerr='small_std', ax=ax[i, 0], label='small', color='k', marker='o')
+    v.plot(x='frac', y='large', yerr='large_std', ax=ax[i, 0], label='large', color='r', marker='x')
+    v.plot(x='frac', y='duplication', ax=ax[i, 1], color='k', marker='o')
+    v.plot(x='frac', y='transfer', ax=ax[i, 1], color='r', marker='x')
     ax[i, 0].set_ylabel(dataset_cols[k])
     fig.subplots_adjust(hspace=0.5, wspace=0.5)
     ax[i, 1].set_ylabel('PI Ratio')
@@ -200,9 +208,9 @@ plt.savefig('reports/performance.png', dpi=300)
 #%%
 print(nrows)
 print(len(rdy_dfs))
-fig, ax = plt.subplots(nrows, 1, figsize=(6, 6), sharex=True)
+fig, ax = plt.subplots(nrows, 1, figsize=(6, 6), sharex=True, sharey=True)
 for i, (k, v) in enumerate(rdy_dfs.items()):
-    v.plot(x='frac', y='transfer_bonus', ax=ax[i])
+    v.plot(x='frac', y='transfer_bonus', ax=ax[i], marker='o')
     # #v.plot(x='frac', y='deletion', ax=ax[i, 1])
     # ax[i, 0].set_ylabel(dataset_cols[k])
     # fig.subplots_adjust(hspace=0.5, wspace=0.5)
@@ -225,7 +233,7 @@ plt.savefig('reports/transfer_bonus.png', dpi=300)
 
 
 # %%
-rdy = rdy_dfs['ml-10m']
+rdy = rdy_dfs['ml-10m_2x']
 fig, ax = plt.subplots()
 rdy.plot(x='frac', y='small_iow', ax=ax)
 rdy.plot(x='frac', y='large_iow', ax=ax)
