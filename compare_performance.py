@@ -7,14 +7,14 @@ import seaborn as sns
 #%%
 datasets = [
     'pinterest-20',
+    'ml-10m_32_50',
+    #'ml-10m_64_100',
+    #'ml-10m_2x',
+    'cifar10',
+    'toxic',
+
     #'count_ci',
     #'breast_cancer',
-    #'ml-10m',
-    #'ml-10m_32_50',
-    'ml-10m_64_100',
-    'ml-10m_2x',
-    'cifar10',
-    'toxic'
 ]
 dataset_cols = {
     'pinterest-20': 'Hit Rate @ 5',
@@ -32,12 +32,14 @@ dataset_nice = {
     'pinterest-20': 'Pinterest RecSys',
     'count_ci': 'CI',
     #'breast_cancer': 'Test Accuracy',
+    'ml-10m_32_50': 'ML-10M RecSys',
     'ml-10m_64_100': 'ML-10M RecSys',
     'ml-10m_2x': 'ML-10M RecSys 2x',
     'cifar10': 'CIFAR10',
     'toxic': 'Toxic Comments'
 }
 rdy_dfs = {}
+valid_dfs = {}
 achieves_at_rows = []
 transfer_bonus_dfs = []
 for dataset in datasets:
@@ -46,23 +48,28 @@ for dataset in datasets:
     if dataset == 'count_ci':
         col = 'val'
         goal = 'minimize'
-    elif dataset == 'pinterest-20':
-        filename = './RecSys2019/itemknn_pinterest_rows.csv'
-        col = 'hitrate5'
-        goal = 'maximize'
     elif dataset == 'breast_cancer':
         filename = 'results/breast_cancer_rows.csv'
         col = 'hidden_score'
         goal = 'maximize'
-    elif dataset == 'cifar10':
-        filename = 'results/cifar_rows.csv'
-        col = 'valid_acc'
+
+    # Primary experiments
+    elif dataset == 'pinterest-20':
+        filename = './RecSys2019/itemknn_pinterest_rows.csv'
+        col = 'hitrate5'
+        valid_col = 'hitrate5'
         goal = 'maximize'
-    elif dataset == 'ml-10m' or dataset == 'ml-10m_64_100':
-        col = 'rmse'
+    elif dataset == 'cifar10':
+        col = 'test_acc'
+        valid_col = 'valid_acc'
+        goal = 'maximize'
+    elif dataset == 'ml-10m' or dataset == 'ml-10m_32_50':
+        col = 'hidden_rmse'
+        valid_col = 'valid_rmse'
         goal = 'minimize'
     elif dataset == 'toxic':
-        col = 'hidden_score'
+        col = 'hidden_aur'
+        valid_col = 'valid_aur'
         goal = 'maximize'
 
     df = pd.read_csv(filename)
@@ -84,7 +91,6 @@ for dataset in datasets:
 
     print('best and worst', best, worst, '\n===')
 
-
     complements = {}
     for frac_val in df.frac:
         complements[frac_val] = 1 - frac_val
@@ -102,7 +108,6 @@ for dataset in datasets:
     df_merged = df_merged.sort_values(by=['seed', 'company', 'frac'])
     df_merged['p_change'] = df_merged[col].diff()
 
-
     # agg different seeds across each frac / company combo
     tmp = df_merged.groupby(['frac', 'company']).mean()
 
@@ -110,9 +115,17 @@ for dataset in datasets:
     print('tmp', tmp, '\n===')
     # unstack and grab column of interest only
     rdy = tmp.unstack()[col]
+    try:
+        valid_df = tmp.unstack()[valid_col]
+        valid_df['frac'] = valid_df.index
+        valid_std = df_merged.groupby(['frac', 'company']).std().unstack()[valid_col]
+        valid_df['small_std'] = valid_std['small']
+        valid_df['large_std'] = valid_std['large']
+        valid_dfs[dataset] = valid_df
+    except Exception as e:
+        print(e)
     rdy['frac'] = rdy.index
-    if dataset in ['ml-10m_64_100', 'ml-10m_2x']:
-        rdy['frac'] = rdy['frac'] * 0.9
+
     rdy['small_std'] = std['small']
     rdy['large_std'] = std['large']
     
@@ -258,14 +271,12 @@ plt.savefig('reports/transfer_bonus.png', dpi=300)
 
 
 # %%
+fig, ax = plt.subplots()
+valid_dfs['cifar10'].plot(x='frac', y='small', ax=ax)
+#valid.plot(x='frac', y='large', ax=ax)
+rdy_dfs['cifar10'].plot(x='frac', y='small', ax=ax)
 
-rdy = rdy_dfs['ml-10m_2x']
-rdy
 # fig, ax = plt.subplots()
 # rdy.plot(x='frac', y='small_iow', ax=ax)
 # rdy.plot(x='frac', y='large_iow', ax=ax)
 # rdy.transfer_bonus
-
-
-
-# %%

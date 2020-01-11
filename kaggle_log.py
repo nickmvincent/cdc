@@ -3,9 +3,10 @@ import numpy as np
 import pandas as pd
 
 from sklearn.feature_extraction.text import TfidfVectorizer
+from scipy.sparse import hstack
+
 from sklearn.linear_model import LogisticRegression
 from sklearn.model_selection import cross_val_score
-from scipy.sparse import hstack
 
 class_names = ['toxic', 'severe_toxic', 'obscene', 'threat', 'insult', 'identity_hate']
 
