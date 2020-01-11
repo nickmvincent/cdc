@@ -45,7 +45,8 @@ if dataset == 'breast_cancer':
     df = pd.read_csv(f'{data_folder}/{dataset_file}')
 elif dataset =='ml-10m':
     dataset_file = 'ratings.dat'
-    df = pd.read_csv(f'{data_folder}/{dataset_file}', header=None, names=['user', 'item', 'rating', 'timestamp'], sep="::")
+    df = pd.read_csv(f'{data_folder}/{dataset_file}', engine='python', header=None, names=['user', 'item', 'rating', 'timestamp'], sep="::")
+    USER_SPLIT = True
 elif dataset =='pinterest-20':
     train_file = 'pinterest-20.train.rating'
     test_file = 'pinterest-20.test.rating'
@@ -56,6 +57,7 @@ elif dataset =='pinterest-20':
     USER_SPLIT = True
     EVAL = 'loo'
 elif dataset == 'toxic':
+    print('Loading toxic')
     dataset_file = 'train.csv'
     df = pd.read_csv(f'{data_folder}/{dataset_file}').fillna(' ')
     class_names = ['toxic', 'severe_toxic', 'obscene', 'threat', 'insult', 'identity_hate']
@@ -80,7 +82,7 @@ else:
 
 #%%
 if USER_SPLIT:
-    users = pd.Series(train_df['user'].unique())
+    users = pd.Series(df['user'].unique())
     print(users.head(3))
 
 VALID_FRAC = 0.1
@@ -93,7 +95,7 @@ for frac in fracs:
 
         if USER_SPLIT:
             small_users = users.sample(frac=frac, random_state=seed)
-            small_mask = df['user'].isin(small_users)
+            small_mask = train_df['user'].isin(small_users)
 
             # if EVAL == 'loo': # we will need these below
             #     large_users = users.drop(small_users.index)
@@ -123,6 +125,8 @@ for frac in fracs:
                 os.mkdir(subdir)
             df_large = train_df[~small_mask]
             df_small = train_df[small_mask]
+            assert len(df_large) + len(df_small) == len(train_df)
+
             for (subdf, name) in (
                 (df_large, 'large'),
                 (df_small, 'small'),
@@ -131,16 +135,20 @@ for frac in fracs:
                 if dataset == 'toxic':
                     text = subdf['comment_text']
                     labels = subdf['binary_label']
+                    assert(any(text.isna()) == False)                    
 
                     test_text = hidden_test_df['comment_text']
                     test_labels = hidden_test_df['binary_label']
 
                     for i, (train_index, valid_index) in enumerate(kf.split(text)):
-                        valid_text = train_text[valid_index]
-                        valid_labels = train_labels[valid_index]
-
-                        train_text = train_text[train_index]
-                        train_labels = train_labels[train_index]                        
+                        valid_text = text.iloc[valid_index]
+                        valid_labels = labels.iloc[valid_index]
+                        #print(train_index)
+                        train_text = text.iloc[train_index]
+                        train_labels = labels.iloc[train_index]                        
+                        assert len(valid_text) + len(train_text) == len(text)
+                        assert(any(valid_text.isna()) == False)
+                        assert(any(train_text.isna()) == False)                        
 
                         word_vectorizer = TfidfVectorizer(
                             sublinear_tf=True,
@@ -150,6 +158,7 @@ for frac in fracs:
                             stop_words='english',
                             ngram_range=(1, 1),
                             max_features=10000)
+                        #print(train_text)
                         word_vectorizer.fit(train_text)
                         train_word_features = word_vectorizer.transform(train_text)
                         test_word_features = word_vectorizer.transform(test_text)
