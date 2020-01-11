@@ -18,6 +18,9 @@ pre = 'libFM/libfm-1.42.src'
 seeds = [0,1,2,3,4]
 fracs = ['0.01', '0.05', '0.1', '0.2', '0.3', '0.4', '0.5']
 rows = []
+hidden = pd.read_csv(
+    f'{pre}/data/ml-10m/hidden_test.csv',
+    header=0, names=['user', 'item', 'rating', 'timestamp'])
 for frac in fracs:
     for seed in seeds:
         scenario = f'{frac}_random{seed}'
@@ -33,6 +36,11 @@ for frac in fracs:
                 truth = pd.read_csv(
                     f'{pre}/data/ml-10m/{scenario}/{entity}_test0.csv',
                     header=0, names=['user', 'item', 'rating', 'timestamp'])
+
+                valid = truth.iloc[:len(hidden)]
+                test = truth.iloc[len(hidden):]
+                assert test.iloc[0] == hidden.iloc[0]
+                assert test.iloc[-1] == hidden.iloc[-1]
                 
             except Exception as e:
                 print(e)
@@ -43,7 +51,8 @@ for frac in fracs:
                 'frac': frac,
                 'scenario': scenario,
                 'company': entity,
-                'rmse': rmse_score(truth.rating, preds.rating),
+                'valid_rmse': rmse_score(valid.rating, preds.rating),
+                'hidden_rmse': rmse_score(test.rating, preds.rating),
                 'seed': seed,
             }
             # for score in [
