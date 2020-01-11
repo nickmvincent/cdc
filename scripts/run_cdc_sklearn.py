@@ -43,18 +43,24 @@ for frac in fracs:
                 train = load_npz(f'{pre}/{co}_train.npz')
                 train_labels = np.load(f'{pre}/{co}_train_labels.npz')['labels']
 
+                valid = load_npz(f'{pre}/{co}_valid.npz')
+                valid_labels = np.load(f'{pre}/{co}_valid_labels.npz')['labels']
+
                 hidden = load_npz(f'{pre}/{co}_hidden.npz')
                 hidden_labels = np.load(f'{pre}/{co}_hidden_labels.npz')['labels']
 
-
                 clf.fit(train, train_labels)
-                probs = clf.predict_proba(hidden)[:, 1]
+                valid_probs = clf.predict_proba(valid)[:, 1]
+                hidden_probs = clf.predict_proba(hidden)[:, 1]
 
-                roc = roc_auc_score(hidden_labels, probs)
+                valid_roc = roc_auc_score(valid_labels, valid_probs)
+                hidden_roc = roc_auc_score(hidden_labels, hidden_probs)
+
                 row_dicts.append({
                     'frac': frac,
                     'company': co,
-                    'hidden_score': roc,
+                    'valid_aur': valid_roc,
+                    'hidden_aur': hidden_roc,
                     'len(train_y)': len(train_labels),
                     'seed': seed,
                 })

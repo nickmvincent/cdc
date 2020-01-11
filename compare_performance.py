@@ -12,7 +12,7 @@ datasets = [
     #'ml-10m',
     #'ml-10m_32_50',
     'ml-10m_64_100',
-    #'ml-10m_2x'
+    'ml-10m_2x',
     'cifar10',
     'toxic'
 ]
@@ -26,6 +26,16 @@ dataset_cols = {
     'ml-10m_2x': 'RMSE',
     'cifar10': 'Test Accuracy',
     'toxic': 'AUR'
+}
+
+dataset_nice = {
+    'pinterest-20': 'Pinterest RecSys',
+    'count_ci': 'CI',
+    #'breast_cancer': 'Test Accuracy',
+    'ml-10m_64_100': 'ML-10M RecSys',
+    'ml-10m_2x': 'ML-10M RecSys 2x',
+    'cifar10': 'CIFAR10',
+    'toxic': 'Toxic Comments'
 }
 rdy_dfs = {}
 achieves_at_rows = []
@@ -62,9 +72,13 @@ for dataset in datasets:
     else:
         worst = df[col].min()
         best = df[col].max()
+
     print('df head 3\n', df.head(3))
 
     baselines = df[df.frac.isna()]
+
+    if dataset == 'pinterest-20':
+        best = baselines[col].max()
     df = df.drop(baselines.index)
     print('baselines\n', baselines, '\n===')
 
@@ -97,6 +111,8 @@ for dataset in datasets:
     # unstack and grab column of interest only
     rdy = tmp.unstack()[col]
     rdy['frac'] = rdy.index
+    if dataset in ['ml-10m_64_100', 'ml-10m_2x']:
+        rdy['frac'] = rdy['frac'] * 0.9
     rdy['small_std'] = std['small']
     rdy['large_std'] = std['large']
     
@@ -131,11 +147,12 @@ for dataset in datasets:
     rdy_dfs[dataset] = rdy
 
     row = {
-        'dataset': dataset,
+        #'dataset': dataset,
+        'Dataset': dataset_nice[dataset]
     }
     for thresh in [0.5, 0.6, 0.7, 0.8, 0.9]:
         val = rdy[rdy.duplication > thresh].frac.min()
-        row[f'achieves_{thresh}'] = val
+        row[f'{thresh}'] = val
         # achieves_at_rows.append({
         #     'dataset': dataset,
         #     'thresh': thresh,
@@ -170,7 +187,11 @@ transfer_bonus_df = pd.concat(transfer_bonus_dfs, sort=False)
 transfer_bonus_df.groupby('frac').transfer_bonus.max()
 
 #%%
-achieves_at_df = pd.DataFrame(achieves_at_rows)
+achieves_at_df = pd.DataFrame(achieves_at_rows).sort_values('0.5')[[
+    'Dataset', '0.5', '0.6', '0.7', '0.8', '0.9'
+]]
+achieves_at_df.to_csv('achieves_at.csv', index=False)
+
 achieves_at_df
 
 
@@ -180,23 +201,30 @@ achieves_at_df
 sns.set_style('whitegrid')
 nrows = len(rdy_dfs)
 #nrows = 2
-fig, ax = plt.subplots(nrows, 2, figsize=(6.5, 8), sharex=True)
+fig, ax = plt.subplots(nrows, 2, figsize=(7, 7), sharex=True)
 
 #_, metrics_ax = plt.subplots(nrows, 1)
 
 for i, (k, v) in enumerate(rdy_dfs.items()):
     print(v['small_std'])
+    nice_name = dataset_nice[k]
     v.plot(x='frac', y='small', yerr='small_std', ax=ax[i, 0], label='small', color='k', marker='o')
     v.plot(x='frac', y='large', yerr='large_std', ax=ax[i, 0], label='large', color='r', marker='x')
     v.plot(x='frac', y='duplication', ax=ax[i, 1], color='k', marker='o')
     v.plot(x='frac', y='transfer', ax=ax[i, 1], color='r', marker='x')
+
+    ax[i, 0].set_xlabel('Group Size')
+    ax[i, 1].set_xlabel('Group Size')
+
     ax[i, 0].set_ylabel(dataset_cols[k])
     fig.subplots_adjust(hspace=0.5, wspace=0.5)
-    ax[i, 1].set_ylabel('PI Ratio')
-    ax[i, 0].set_title(f'{k} Performance')
-    ax[i, 1].set_title(f'{k} CDC Effectivness')
+    ax[i, 1].set_ylabel('PIR')
+    ax[i, 0].set_title(f'{nice_name}\nPerformance')
+    ax[i, 1].set_title(f'{nice_name}\nCDC Effectiveness')
 
-    ax[i, 1].text(0.5, 0.5, round(v['transfer_bonus'].max(), 2))
+
+    # UNCOMMENT TO SHOW TRANSFER BONUS ON PLOTS
+    #ax[i, 1].text(0.5, 0.5, round(v['transfer_bonus'].max(), 2))
     print(k, round(v['transfer_bonus'].max(), 2))
 
     if i != 0:
@@ -228,17 +256,15 @@ for i, (k, v) in enumerate(rdy_dfs.items()):
     #plt.suptitle('CDC Simulations')
 plt.savefig('reports/transfer_bonus.png', dpi=300)
 
-    
-
-
 
 # %%
+
 rdy = rdy_dfs['ml-10m_2x']
-fig, ax = plt.subplots()
-rdy.plot(x='frac', y='small_iow', ax=ax)
-rdy.plot(x='frac', y='large_iow', ax=ax)
-rdy.transfer_bonus
-#plt.axhline(max_iow)
+rdy
+# fig, ax = plt.subplots()
+# rdy.plot(x='frac', y='small_iow', ax=ax)
+# rdy.plot(x='frac', y='large_iow', ax=ax)
+# rdy.transfer_bonus
 
 
 

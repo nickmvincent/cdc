@@ -38,12 +38,15 @@ for frac in fracs:
                 print(line)
 
             dim = '1,1,16'
-            iterations = 30
-            preds_subdir = f'{pre}/preds/ml-10m/{scenario}'
+            iterations = 50
+            preds_subdir = f'{pre}/preds/ml-10m/{scenario}/{dim}_{iterations}'
+
 
             for sub in [
                 f'{pre}/preds/',
                 f'{pre}/preds/ml-10m/',
+                 f'{pre}/preds/ml-10m/{scenario}',
+                preds_subdir,
             ]:
                 if not os.path.isdir(sub):
                     os.mkdir(sub)

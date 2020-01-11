@@ -5,6 +5,7 @@ from sklearn.model_selection import KFold
 import os
 from sklearn.feature_extraction.text import TfidfVectorizer
 from scipy.sparse import hstack, save_npz
+import sys
 #%%
 # fracs = []
 # for i in range(1, 20):
@@ -17,6 +18,7 @@ fracs
 dataset = 'pinterest-20'
 dataset = 'ml-10m'
 dataset = 'toxic'
+dataset = sys.argv[1]
 
 
 kf = KFold(n_splits=10, shuffle=True, random_state=0)
@@ -35,7 +37,6 @@ if not os.path.isdir(f'{preds_folder}/{dataset}'):
 USER_SPLIT = False
 
 EVAL = 'kfold'
-PREPROCESS = False
 # other options include other loo (leave-one-out), other kfold, ...
 
 # @FUTURE: could be abstracted into config files...
@@ -59,17 +60,20 @@ elif dataset == 'toxic':
     df = pd.read_csv(f'{data_folder}/{dataset_file}').fillna(' ')
     class_names = ['toxic', 'severe_toxic', 'obscene', 'threat', 'insult', 'identity_hate']
     df['binary_label'] = df[class_names].any(axis=1)
-    PREPROCESS = True
     
 
 df.head(3)
 
 
 #%%
+HIDDEN_FRAC = 0.1
+HIDDEN_SEED = 0
 if EVAL == 'kfold':
-    hidden_test_df = df.sample(frac=0.25, random_state=0)
+    hidden_test_df = df.sample(frac=HIDDEN_FRAC, random_state=HIDDEN_SEED)
     hidden_test_df.to_csv(f'{data_folder}/hidden_test.csv')
     train_df = df.drop(hidden_test_df.index)
+# elif EVAL == 'loo':
+#     hidden_test_users = users.sample(frac=0.1, random_state=HIDDEN_SEED)
 else:
     train_df = df
 
@@ -79,6 +83,8 @@ if USER_SPLIT:
     users = pd.Series(train_df['user'].unique())
     print(users.head(3))
 
+VALID_FRAC = 0.1
+VALID_SEED = 100
 #%%
 for frac in fracs:
     for seed in seeds:
@@ -86,21 +92,31 @@ for frac in fracs:
         print(f'scenario: {scenario}')
 
         if USER_SPLIT:
-            strikers = users.sample(frac=frac, random_state=seed)
-            print('# strikers', len(strikers))
+            small_users = users.sample(frac=frac, random_state=seed)
+            small_mask = df['user'].isin(small_users)
 
-            small_mask = df['user'].isin(strikers)
+            # if EVAL == 'loo': # we will need these below
+            #     large_users = users.drop(small_users.index)
+
+
+            #     small_valid_users = small_users.sample(frac=VALID_FRAC, random_state=VALID_SEED)
+            #     small_valid_mask = users.isin(small_valid_users)
+
+            #     large_valid_users = large_users.sample(frac=VALID_FRAC, random_state=VALID_SEED+1)
+            #     large_valid_mask = users.isin(large_valid_users)
+
+            print('# strikers', len(small_users))
             print('# ratings for strikers', sum(small_mask))
         else:
             np.random.seed(seed)
             small_mask = np.random.rand(len(train_df)) < frac
-
         
         preds_dir = f'{preds_folder}/{dataset}'
 
         if not os.path.isdir(preds_dir):
             os.mkdir(preds_dir)
 
+        # Toxic and ML-10M
         if EVAL == 'kfold':
             subdir = f'{data_folder}/{scenario}'
             if not os.path.isdir(subdir):
@@ -111,53 +127,70 @@ for frac in fracs:
                 (df_large, 'large'),
                 (df_small, 'small'),
             ):
-                if PREPROCESS == True:
-                    train_text = subdf['comment_text']
-                    train_labels = subdf['binary_label']
+                # Toxic
+                if dataset == 'toxic':
+                    text = subdf['comment_text']
+                    labels = subdf['binary_label']
+
                     test_text = hidden_test_df['comment_text']
                     test_labels = hidden_test_df['binary_label']
 
-                    word_vectorizer = TfidfVectorizer(
-                        sublinear_tf=True,
-                        strip_accents='unicode',
-                        analyzer='word',
-                        token_pattern=r'\w{1,}',
-                        stop_words='english',
-                        ngram_range=(1, 1),
-                        max_features=10000)
-                    word_vectorizer.fit(train_text)
-                    train_word_features = word_vectorizer.transform(train_text)
-                    test_word_features = word_vectorizer.transform(test_text)
-                    char_vectorizer = TfidfVectorizer(
-                        sublinear_tf=True,
-                        strip_accents='unicode',
-                        analyzer='char',
-                        stop_words='english',
-                        ngram_range=(2, 6),
-                        max_features=50000)
-                    char_vectorizer.fit(train_text)
-                    train_char_features = char_vectorizer.transform(train_text)
-                    test_char_features = char_vectorizer.transform(test_text)
+                    for i, (train_index, valid_index) in enumerate(kf.split(text)):
+                        valid_text = train_text[valid_index]
+                        valid_labels = train_labels[valid_index]
 
-                    train_features = hstack([train_char_features, train_word_features])
-                    test_features = hstack([test_char_features, test_word_features])
-                    save_npz(f'{subdir}/{name}_train', train_features)
-                    np.savez(f'{subdir}/{name}_train_labels', labels=train_labels.values)
-                    #f not os.path.exists(f'{data_folder}/hidden_test_processed'):
-                    save_npz(f'{subdir}/{name}_hidden', test_features)
-                    np.savez(f'{subdir}/{name}_hidden_labels', labels=test_labels.values)
+                        train_text = train_text[train_index]
+                        train_labels = train_labels[train_index]                        
 
-                    #TODO folds
+                        word_vectorizer = TfidfVectorizer(
+                            sublinear_tf=True,
+                            strip_accents='unicode',
+                            analyzer='word',
+                            token_pattern=r'\w{1,}',
+                            stop_words='english',
+                            ngram_range=(1, 1),
+                            max_features=10000)
+                        word_vectorizer.fit(train_text)
+                        train_word_features = word_vectorizer.transform(train_text)
+                        test_word_features = word_vectorizer.transform(test_text)
+                        valid_word_features = word_vectorizer.transform(valid_text)
+                        char_vectorizer = TfidfVectorizer(
+                            sublinear_tf=True,
+                            strip_accents='unicode',
+                            analyzer='char',
+                            stop_words='english',
+                            ngram_range=(2, 6),
+                            max_features=50000)
+                        char_vectorizer.fit(train_text)
+                        train_char_features = char_vectorizer.transform(train_text)
+                        test_char_features = char_vectorizer.transform(test_text)
+                        valid_char_features = char_vectorizer.transform(valid_text)
 
-                else:
-                    for i, (train_index, test_index) in enumerate(kf.split(subdf)):
-                        subdf.iloc[train_index].to_csv(f'{subdir}/{name}_train{i}.csv', header=None, index=None)
-                        subdf.iloc[test_index].to_csv(f'{subdir}/{name}_test{i}.csv', header=None, index=None)
+                        train_features = hstack([train_char_features, train_word_features])
+                        test_features = hstack([test_char_features, test_word_features])
+                        valid_features = hstack([valid_char_features, valid_word_features])
+                    
+                        save_npz(f'{subdir}/{name}_train', train_features)
+                        np.savez(f'{subdir}/{name}_train_labels', labels=train_labels.values)
+
+                        save_npz(f'{subdir}/{name}_valid', valid_features)
+                        np.savez(f'{subdir}/{name}_valid_labels', labels=valid_labels.values)
+
+                        #f not os.path.exists(f'{data_folder}/hidden_test_processed'):
+                        save_npz(f'{subdir}/{name}_hidden', test_features)
+                        np.savez(f'{subdir}/{name}_hidden_labels', labels=test_labels.values)
                         break
+                        # to do just 1 fold
+                else:
+                    for i, (train_index, valid_index) in enumerate(kf.split(subdf)):
+                        subdf.iloc[train_index].to_csv(f'{subdir}/{name}_train{i}.csv', header=None, index=None)
+                        # this is a bit of a hack b/c LIBFM doesn't save Bayesian MF models.
+                        concat_test = pd.concat([
+                            hidden_test_df, subdf.iloc[valid_index]
+                        ])
+                        concat_test.to_csv(f'{subdir}/{name}_test{i}.csv', header=None, index=None)
+                        break # to do just 1 fold
         elif EVAL == 'loo':
-            # TODO probably need to reset item indices as well.
-            # should we just use reindex??
-            
             # ===
             # Make subdirs
             subdir_large = f'{data_folder}/{scenario}_large'
@@ -169,19 +202,20 @@ for frac in fracs:
                 os.mkdir(subdir_small)
 
             # hack to avoid re-running
-            try:
-                pd.read_csv('{subdir_large}/{dataset}.test.rating')
-                continue
-            except:
-                pass
+            # try:
+            #     pd.read_csv('{subdir_large}/{dataset}.test.rating')
+            #     continue
+            # except:
+            #     pass
 
             # ===
             # Test Data
-            test_small_mask = test_df['user'].isin(strikers)
-
+            test_small_mask = test_df['user'].isin(small_users)
             test_large = test_df[~test_small_mask]
             test_small = test_df[test_small_mask]
 
+            # to re-index the users ids
+            # so small starts at 0 and large starts at 0
             old_to_new_large = {}
             for i, (uid, row) in enumerate(test_large.iterrows()):
                 old_to_new_large[row.user] = i
