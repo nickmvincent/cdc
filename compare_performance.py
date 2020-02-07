@@ -258,8 +258,8 @@ fig, ax = plt.subplots(nrows, 2, figsize=(7, 8), sharex=True)
 
 for i, (k, v) in enumerate(co_dfs.items()):
     nice_name = dataset_nice[k]
-    v.plot(x='frac', y='small', yerr='small_std', ax=ax[i, 0], label='small', color='k', marker='o')
-    v.plot(x='frac', y='large', yerr='large_std', ax=ax[i, 0], label='large', color='r', marker='x')
+    v.plot(x='frac', y='small', yerr='small_std', ax=ax[i, 0], label='SMALL', color='k', marker='o')
+    v.plot(x='frac', y='large', yerr='large_std', ax=ax[i, 0], label='LARGE', color='r', marker='x')
     v.plot(x='frac', y='duplication', ax=ax[i, 1], color='k', marker='o', label='CDC only')
     v.plot(x='frac', y='transfer', ax=ax[i, 1], color='r', marker='x', label='CDC + deletion')
 

@@ -11,6 +11,10 @@ seeds = [
     2, 3, 4
 ]
 
+fracs = [0.1, 0.2]
+seeds = [0]
+tactic = 'randomvandal'
+
 for frac in fracs:
     for seed in seeds:
         format_call = f'{pre}/scripts/triple_format_to_libfm.pl'
@@ -19,7 +23,7 @@ for frac in fracs:
             'small',
             'large'
         ]:
-            scenario = f'{frac}_random{seed}'
+            scenario = f'{frac}_{tactic}{seed}'
             train_data = f'{pre}/data/ml-10m/{scenario}/{company}_train0.csv'
             formatted_train_data = f'{train_data}.libfm'
             test_data = f'{pre}/data/ml-10m/{scenario}/{company}_test0.csv'

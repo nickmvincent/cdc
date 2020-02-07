@@ -6,19 +6,27 @@ import os
 from sklearn.feature_extraction.text import TfidfVectorizer
 from scipy.sparse import hstack, save_npz
 import sys
+# import argparse
+
+# parser = argparse.ArgumentParser(description='Split data for a data leverage campaign')
+# parser.add_argument('integers', metavar='N', type=int, nargs='+',
+#                     help='an integer for the accumulator')
+# parser.add_argument('--sum', dest='accumulate', action='store_const',
+#                     const=sum, default=max,
+#                     help='sum the integers (default: find the max)')
+
+# args = parser.parse_args()
 #%%
 # fracs = []
 # for i in range(1, 20):
 #     fracs.append(round(i * 0.05, 2)
+#if fracs == 'full':
 fracs = [0.01, 0.05, .1, .2, .3, .4, 0.5,]
 seeds = [0,1,2,3,4]
 seeds = [5,6,7,8,9]
 fracs
 
 #%%
-dataset = 'pinterest-20'
-dataset = 'ml-10m'
-dataset = 'toxic'
 dataset = sys.argv[1]
 
 
@@ -91,7 +99,7 @@ VALID_SEED = 100
 #%%
 for frac in fracs:
     for seed in seeds:
-        scenario = f'{frac}_random{seed}'
+        scenario = f'{frac}_{tactic}{seed}'
         print(f'scenario: {scenario}')
 
         if USER_SPLIT:
@@ -101,18 +109,33 @@ for frac in fracs:
             # if EVAL == 'loo': # we will need these below
             #     large_users = users.drop(small_users.index)
 
-
             #     small_valid_users = small_users.sample(frac=VALID_FRAC, random_state=VALID_SEED)
             #     small_valid_mask = users.isin(small_valid_users)
 
             #     large_valid_users = large_users.sample(frac=VALID_FRAC, random_state=VALID_SEED+1)
             #     large_valid_mask = users.isin(large_valid_users)
 
+            df_large = train_df[~small_mask]
+            df_small = train_df[small_mask] 
+
+            if tactic == 'randomvandal':
+                df_vandalised = df_small.copy()
+                df_vandalised.rating = np.random.randint(1,11, len(df_vandalised)) / 2
+                df_large = pd.concat([df_large, df_vandalised])
+            elif tactic == 'extremevandal':
+                df_vandalised = df_small.copy()
+                df_vandalised.loc[df_vandalised.rating < 3] = 1.0
+                df_vandalised.loc[df_vandalised.rating >= 3] = 5.0
+                df_large = pd.concat([df_large, df_vandalised])
             print('# strikers', len(small_users))
             print('# ratings for strikers', sum(small_mask))
+
+            
+
         else:
-            np.random.seed(seed)
-            small_mask = np.random.rand(len(train_df)) < frac
+            df_small = train_df.sample(frac=frac,random_state=seed) #random state is a seed value
+            df_large = train_df.drop(df_small.index)
+        assert len(df_large) + len(df_small) == len(train_df)
         
         preds_dir = f'{preds_folder}/{dataset}'
 
@@ -124,9 +147,6 @@ for frac in fracs:
             subdir = f'{data_folder}/{scenario}'
             if not os.path.isdir(subdir):
                 os.mkdir(subdir)
-            df_large = train_df[~small_mask]
-            df_small = train_df[small_mask]
-            assert len(df_large) + len(df_small) == len(train_df)
 
             for (subdf, name) in (
                 (df_large, 'large'),
@@ -186,7 +206,6 @@ for frac in fracs:
                         save_npz(f'{subdir}/{name}_valid', valid_features)
                         np.savez(f'{subdir}/{name}_valid_labels', labels=valid_labels.values)
 
-                        #f not os.path.exists(f'{data_folder}/hidden_test_processed'):
                         save_npz(f'{subdir}/{name}_hidden', test_features)
                         np.savez(f'{subdir}/{name}_hidden_labels', labels=test_labels.values)
                         break

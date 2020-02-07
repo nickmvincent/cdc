@@ -17,13 +17,19 @@ pre = 'libFM/libfm-1.42.src'
 
 seeds = [0,1,2,3,4]
 fracs = ['0.01', '0.05', '0.1', '0.2', '0.3', '0.4', '0.5']
+
+fracs = [0.1, 0.2]
+seeds = [0]
+tactic = 'randomvandal'
+
+
 rows = []
 hidden = pd.read_csv(
     f'{pre}/data/ml-10m/hidden_test.csv',
     header=0, names=['user', 'item', 'rating', 'timestamp'])
 for frac in fracs:
     for seed in seeds:
-        scenario = f'{frac}_random{seed}'
+        scenario = f'{frac}_{tactic}{seed}'
         for entity in [
             'small', 
             'large'
