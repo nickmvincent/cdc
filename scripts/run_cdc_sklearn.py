@@ -27,7 +27,6 @@ fracs
 
 #%%
 seeds = [0,1,2,3,4]
-seeds = [0]
 
 
 row_dicts = []

@@ -37,7 +37,7 @@ for frac in fracs:
             for line in format_res.splitlines():
                 print(line)
 
-            dim = '1,1,16'
+            dim = '1,1,32'
             iterations = 50
             preds_subdir = f'{pre}/preds/ml-10m/{scenario}/{dim}_{iterations}'
 

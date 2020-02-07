@@ -12,6 +12,7 @@ import sys
 #     fracs.append(round(i * 0.05, 2)
 fracs = [0.01, 0.05, .1, .2, .3, .4, 0.5,]
 seeds = [0,1,2,3,4]
+seeds = [5,6,7,8,9]
 fracs
 
 #%%

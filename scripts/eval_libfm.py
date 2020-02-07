@@ -29,18 +29,29 @@ for frac in fracs:
             'large'
         ]:
             try:
+                config = '1,1,32_50'
                 preds = pd.read_csv(
-                    f'{pre}/preds/ml-10m/{scenario}/{entity}_test0.preds',
-                    header=0, names=['rating'])
+                    f'{pre}/preds/ml-10m/{scenario}/{config}/{entity}_test0.preds',
+                    header=None, names=['rating'])
 
                 truth = pd.read_csv(
                     f'{pre}/data/ml-10m/{scenario}/{entity}_test0.csv',
-                    header=0, names=['user', 'item', 'rating', 'timestamp'])
+                    header=None, names=['user', 'item', 'rating', 'timestamp'])
+                assert len(preds) == len(truth)
+                n = len(hidden)
+                print(n)
+                test_preds = preds.iloc[:n]
+                test = truth.iloc[:n]
 
-                valid = truth.iloc[:len(hidden)]
-                test = truth.iloc[len(hidden):]
-                assert test.iloc[0] == hidden.iloc[0]
-                assert test.iloc[-1] == hidden.iloc[-1]
+                valid_preds = preds.iloc[n:]
+                valid = truth.iloc[n:]
+                #print('hidden\n', hidden.head(3).user, '\ntestn\n', test.head(3).user)
+                assert len(test) + len(valid) == len(truth)
+                assert hidden.user.iloc[0] == test.user.iloc[0]
+                #print(truth.head(3))
+                #print(hidden.head(3))
+                #print('test')
+                #print(test.head(3))
                 
             except Exception as e:
                 print(e)
@@ -51,10 +62,13 @@ for frac in fracs:
                 'frac': frac,
                 'scenario': scenario,
                 'company': entity,
-                'valid_rmse': rmse_score(valid.rating, preds.rating),
-                'hidden_rmse': rmse_score(test.rating, preds.rating),
+                'valid_rmse': rmse_score(valid.rating, valid_preds.rating),
+                'hidden_rmse': rmse_score(test.rating, test_preds.rating),
                 'seed': seed,
+                '# hidden': n,
+                '# valid': len(valid),
             }
+            print(row)
             # for score in [
             #     rmse_score,
             #     #surfaced_hits,
@@ -82,4 +96,4 @@ for frac in fracs:
 results = pd.DataFrame(rows).dropna()
 
 #%%
-results.to_csv('results/ml-10m_rows.csv')
+results.to_csv(f'results/ml-10m_{config}rows.csv')
