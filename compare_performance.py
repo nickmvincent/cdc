@@ -25,7 +25,7 @@ dataset_cols = {
     'ml-10m_64_100': 'RMSE',
     'ml-10m_2x': 'RMSE',
     'cifar10': 'Test Accuracy',
-    'toxic': 'AUR'
+    'toxic': 'AUC'
 }
 
 dataset_nice = {
@@ -213,10 +213,13 @@ for dataset in datasets:
 
 
 # %%
+sns.set()
 sns.set_style('whitegrid')
 nrows = len(hidden_dfs)
 #nrows = 2
 fig, ax = plt.subplots(nrows, 2, figsize=(7, 8), sharex=True)
+fig2, ax2 = plt.subplots(1, nrows, figsize=(7, 4), sharey=True)
+
 
 #_, metrics_ax = plt.subplots(nrows, 1)
 
@@ -224,9 +227,21 @@ for i, (k, v) in enumerate(hidden_dfs.items()):
     #print(v['small_std'])
     nice_name = dataset_nice[k]
     v.plot(x='frac', y='small', yerr='small_std', ax=ax[i, 0], label='SMALL', color='k', marker='o')
-    v.plot(x='frac', y='large', yerr='large_std', ax=ax[i, 0], label='LARGE', color='r', marker='x')
+    v.plot(x='frac', y='large', yerr='large_std', ax=ax[i, 0], label='LARGE', color='b', marker='x')
     v.plot(x='frac', y='duplication', ax=ax[i, 1], color='k', marker='o', label='CDC only')
-    v.plot(x='frac', y='transfer', ax=ax[i, 1], color='r', marker='x', label='CDC + deletion')
+    v.plot(x='frac', y='transfer', ax=ax[i, 1], color='b', marker='x', label='CDC + deletion')
+
+    # EA plot
+    # ===
+    v.plot(x='frac', y='duplication', ax=ax2[i], color='k', marker='o', label='CDC only')
+    v.plot(x='frac', y='transfer', ax=ax2[i], color='b', marker='x', label='CDC + deletion')
+    ax2[i].set_xlabel('Group Size')
+    ax2[i].set_ylabel('PIR')
+    fig2.subplots_adjust(hspace=0.5, wspace=0.5)
+    ax2[i].set_title(f'{nice_name}\nCDC Effectiveness')
+    if i != nrows - 1:
+        ax2[i].get_legend().remove()
+    # ===
 
     # co_df = co_dfs[k]
     # co_df.plot(x='frac', y='small', yerr='small_std', ax=ax[i, 0], label='co small', color='g', marker='o', linestyle='None')
@@ -248,20 +263,34 @@ for i, (k, v) in enumerate(hidden_dfs.items()):
     if i != 0:
         ax[i, 0].get_legend().remove()
         ax[i, 1].get_legend().remove()
-    #plt.suptitle('CDC Simulations')
-plt.savefig('reports/performance.png', dpi=300)
+fig.savefig('reports/hidden_performance.png', dpi=300)
+fig2.savefig('reports/EA_hidden_performance.png')
 
 #%%
 fig, ax = plt.subplots(nrows, 2, figsize=(7, 8), sharex=True)
-
-#_, metrics_ax = plt.subplots(nrows, 1)
+fig2, ax2 = plt.subplots(2, nrows, figsize=(7, 4), sharex=True, sharey=False)
 
 for i, (k, v) in enumerate(co_dfs.items()):
     nice_name = dataset_nice[k]
     v.plot(x='frac', y='small', yerr='small_std', ax=ax[i, 0], label='SMALL', color='k', marker='o')
-    v.plot(x='frac', y='large', yerr='large_std', ax=ax[i, 0], label='LARGE', color='r', marker='x')
+    v.plot(x='frac', y='large', yerr='large_std', ax=ax[i, 0], label='LARGE', color='b', marker='x')
     v.plot(x='frac', y='duplication', ax=ax[i, 1], color='k', marker='o', label='CDC only')
-    v.plot(x='frac', y='transfer', ax=ax[i, 1], color='r', marker='x', label='CDC + deletion')
+    v.plot(x='frac', y='transfer', ax=ax[i, 1], color='b', marker='x', label='CDC + deletion')
+
+    # EA plot
+    # ===
+    v.plot(x='frac', y='small', ax=ax2[0, i], color='k', marker='o', label='SMALL')
+    v.plot(x='frac', y='large', ax=ax2[0, i], color='b', marker='x', label='LARGE')
+    v.plot(x='frac', y='duplication', ax=ax2[1, i], color='k', marker='o', label='CDC only')
+    v.plot(x='frac', y='transfer', ax=ax2[1, i], color='b', marker='x', label='CDC + deletion')
+    ax2[1, i].set_xlabel('Group Size')
+    ax2[0, i].set_ylabel(dataset_cols[k])
+    ax2[1, i].set_ylabel('PIR')
+    fig2.subplots_adjust(hspace=0.5, wspace=0.5)
+    if i != nrows -1:
+        ax2[0, i].get_legend().remove()
+        ax2[1, i].get_legend().remove()
+    # ===
 
     ax[i, 0].set_xlabel('Group Size')
     ax[i, 1].set_xlabel('Group Size')
@@ -269,19 +298,24 @@ for i, (k, v) in enumerate(co_dfs.items()):
     ax[i, 0].set_ylabel(dataset_cols[k])
     fig.subplots_adjust(hspace=0.5, wspace=0.5)
     ax[i, 1].set_ylabel('PIR')
+    
     ax[i, 0].set_title(f'{nice_name}\nCompany-Perspective Performance')
     ax[i, 1].set_title(f'{nice_name}\nCDC Effectiveness')
 
 
     # UNCOMMENT TO SHOW TRANSFER BONUS ON PLOTS
     #ax[i, 1].text(0.5, 0.5, round(v['transfer_bonus'].max(), 2))
-    print(k, round(v['transfer_bonus'].max(), 2))
 
     if i != 0:
         ax[i, 0].get_legend().remove()
         ax[i, 1].get_legend().remove()
-    #plt.suptitle('CDC Simulations')
-plt.savefig('reports/company_perspective_performance.png', dpi=300)
+
+        
+fig.savefig('reports/company_perspective_performance.png', dpi=300)
+fig2.savefig('reports/EA_company_performance.png', dpi=300)
+
+
+
 
 #%%
 fig, ax = plt.subplots(nrows, 1, figsize=(6, 6), sharex=True, sharey=True)
@@ -304,5 +338,24 @@ for i, (k, v) in enumerate(hidden_dfs.items()):
     #plt.suptitle('CDC Simulations')
 plt.savefig('reports/transfer_bonus.png', dpi=300)
 
+
+# %%
+sns.set_style('white')
+fig, ax = plt.subplots(1, 1, figsize=(5, 3))
+v = co_dfs['cifar10']
+v.plot(x='frac', y='small', yerr='small_std', ax=ax, color='k', marker='o')
+ax.set_ylabel('Accuracy')
+ax.set_xlabel('Fraction of Data')
+ax.set_title('Image Classification of CIFAR-10:\n Performance vs. Training Dataset Size')
+ax.get_legend().remove()
+ax.axvline(0.02, color='b', linestyle='--')
+ax.axvline(0.2, color='b', linestyle='--')
+ax.axvline(0.8, color='r', linestyle='--')
+ax.axvline(0.98, color='r', linestyle='--')
+fig.subplots_adjust(left=0.2, bottom=0.2, right=0.8, top=0.8)
+
+
+
+plt.savefig('reports/example.png', dpi=300)
 
 # %%
