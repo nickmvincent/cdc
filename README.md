@@ -26,5 +26,19 @@ This code lives in this repo.
 
 See `cdc_split.py` (implements the data prep from Kaggle user guocan https://www.kaggle.com/guocan/logistic-regression-with-words-and-char-n-g-13417e) and `run_cdc_sklearn.py` (driver code for training/testing).
 
+In the paper, we note that 'The binary classification performance of the ML approach is very close to the average performance across the six categories'
+
+Here are the results from the above kaggle notebook:
+toxic is 0.978566839758313
+severe_toxic is 0.9886024475623884
+obscene is 0.990113763853626
+threat is 0.9893489760024069
+insult is 0.9826925321664285
+identity_hate is 0.982642365633132
+avg: 0.9853278208293825
+
+We created a binary classification task by treating each comment with a positive label in any category as toxic.
+Our binary class reuslts: 0.9745094019688552 for company-perspective (subjective), 0.9720217014497914 for fixed holdout (objective / hidden)
+
 # Paper figures
 See `compare_performance.py` (this is a .py file that runs as a Jupyter notebook via Vscode Jupyter notebook feature).
