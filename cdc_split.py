@@ -28,6 +28,7 @@ fracs
 
 #%%
 dataset = sys.argv[1]
+tactic = 'random'
 
 
 kf = KFold(n_splits=10, shuffle=True, random_state=0)
@@ -124,8 +125,8 @@ for frac in fracs:
                 df_large = pd.concat([df_large, df_vandalised])
             elif tactic == 'extremevandal':
                 df_vandalised = df_small.copy()
-                df_vandalised.loc[df_vandalised.rating < 3] = 1.0
-                df_vandalised.loc[df_vandalised.rating >= 3] = 5.0
+                df_vandalised.loc[df_vandalised.rating < 3] = 5.0
+                df_vandalised.loc[df_vandalised.rating >= 3] = 1.0
                 df_large = pd.concat([df_large, df_vandalised])
             print('# strikers', len(small_users))
             print('# ratings for strikers', sum(small_mask))

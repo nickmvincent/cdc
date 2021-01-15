@@ -33,7 +33,7 @@ dataset_nice = {
     'count_ci': 'CI',
     #'breast_cancer': 'Test Accuracy',
     'ml-10m_32_50': 'MovieLens 10M RecSys',
-    'ml-10m_64_100': 'MovieLens 10M RecSyss',
+    'ml-10m_64_100': 'MovieLens 10M RecSys',
     'ml-10m_2x': 'MovieLens 10M RecSys 2x',
     'cifar10': 'CIFAR-10',
     'toxic': 'Wikipedia Toxic Comments'
@@ -94,8 +94,12 @@ for dataset in datasets:
         ['hidden', 'co'],
     ):
         df = pd.read_csv(filename)
+        print(dataset)
 
         if dataset == 'pinterest-20':
+            
+            # drop last row, which is "random baseline"
+            df = df.iloc[:-1]
             df.loc[:, 'weighted_hitrate5'] = df['hitrate5']
             mask1 = df.company == 'small'
             masked1 = df[mask1]
@@ -106,16 +110,19 @@ for dataset in datasets:
             df.loc[mask2, 'weighted_hitrate5'] = (1-masked2.frac) * masked2['hitrate5'] + (masked2.frac) * TOP_POP_HITRATE
         
         if goal == 'minimize':
-            worst = df[col].max()
-            best = df[col].min()
+            worst = max(df[co_col].max(), df[hidden_col].max())
+            best = min(df[co_col].min(), df[hidden_col].min())
         else:
-            worst = df[col].min()
-            best = df[col].max()
+            best = max(df[co_col].max(), df[hidden_col].max())
+            worst = min(df[co_col].min(), df[hidden_col].min())
+
+        if 'ml-10m' in dataset:
+            worst = 0.99
 
         #print('df head 3\n', df.head(3))
 
+        
         baselines = df[df.frac.isna()]
-
         if dataset == 'pinterest-20':
             best = baselines[col].max()
             print(baselines)
@@ -144,7 +151,7 @@ for dataset in datasets:
         tmp = df_merged.groupby(['frac', 'company']).mean()
 
         std = df_merged.groupby(['frac', 'company']).std().unstack()[col]
-        print('tmp', tmp, '\n===')
+        #print('tmp', tmp, '\n===')
         # unstack and grab column of interest only
         rdy = tmp.unstack()[col]
         rdy['frac'] = rdy.index
@@ -171,7 +178,7 @@ for dataset in datasets:
         rdy['deletion'] = 1 - rdy.large_iow / max_iow
        #rdy['deletion2'] = rdy.large_iob / max_iob
 
-        print('rdy\n', rdy.head(3))
+        #print('rdy\n', rdy.head(3))
 
         rdy['transfer_bonus'] = rdy.transfer - rdy.duplication
         rdy['dup_bonus'] = rdy.duplication - rdy.deletion
@@ -218,13 +225,13 @@ sns.set()
 sns.set_style('whitegrid')
 nrows = len(hidden_dfs)
 labels = {
-    'cdc': 'CDC-only',
-    'strike': 'Deletion only',
-    'cdc-strike': 'CDC-with-deletion'
+    'cdc': 'CDC only',
+    'strike': 'Data strike only',
+    'cdc-strike': 'CDC with data strike'
 }
-SMALL_PERF = 'Small Co. for CDC-only'
-LARGE_PERF = 'Large Co. with deletion'
-BEST_PERF = 'Large Co. without deletion'
+SMALL_PERF = 'Small Co. performance'
+LARGE_PERF = 'Large Co. performance'
+#BEST_PERF = 'Large Co. without deletion'
 DLP_COL = 0
 METRIC_COL = 1
 horiz = False
@@ -236,20 +243,23 @@ for dfs, name in zip([co_dfs, hidden_dfs], ['co', 'hidden']):
     for i, (k, v) in enumerate(dfs.items()):
         nice_name = dataset_nice[k]
         v.plot(x='frac', y='small', yerr='small_std', ax=ax[i, METRIC_COL], label=SMALL_PERF, color='k', marker='o')
-        v.plot(x='frac', y='large', yerr='large_std', ax=ax[i, METRIC_COL], label=LARGE_PERF, color='b', marker='x')
-        ax[i, METRIC_COL].axhline(v['large'].max(), color='b', label=BEST_PERF)
+        v.plot(x='frac', y='large', yerr='large_std', ax=ax[i, METRIC_COL], label=LARGE_PERF, color='b', marker='s')
+        ax[i, METRIC_COL].legend()
+        #ax[i, METRIC_COL].axhline(v['large'].max(), color='b', label=BEST_PERF)
+        #ax[i, DLP_COL].axvline(0.2, color='grey', linestyle='--')
 
         v.plot(x='frac', y='duplication', ax=ax[i, DLP_COL], color='k', marker='o', label=labels['cdc'])
-        v.plot(x='frac', y='transfer', ax=ax[i, DLP_COL], color='b', marker='x', label=labels['cdc-strike'])
+        v.plot(x='frac', y='transfer', ax=ax[i, DLP_COL], color='b', marker='s', label=labels['cdc-strike'])
         v.plot(x='frac', y='deletion', ax=ax[i, DLP_COL], color='r', marker='x', label=labels['strike'])
+        ax[i, DLP_COL].legend()
 
         if horiz:
         # EA plot
             # ===
             v.plot(x='frac', y='small', ax=ax2[0, i], color='k', marker='o', label=SMALL_PERF)
-            v.plot(x='frac', y='large', ax=ax2[0, i], color='b', marker='x', label=LARGE_PERF)
+            v.plot(x='frac', y='large', ax=ax2[0, i], color='b', marker='s', label=LARGE_PERF)
             v.plot(x='frac', y='duplication', ax=ax2[1, i], color='k', marker='o', label=labels['cdc'])
-            v.plot(x='frac', y='transfer', ax=ax2[1, i], color='b', marker='x', label=labels['cdc-strike'])
+            v.plot(x='frac', y='transfer', ax=ax2[1, i], color='b', marker='s', label=labels['cdc-strike'])
             ax2[1, i].set_xlabel('Group Size')
             ax2[0, i].set_ylabel(dataset_cols[k])
             ax2[1, i].set_ylabel('PIR')
@@ -262,23 +272,35 @@ for dfs, name in zip([co_dfs, hidden_dfs], ['co', 'hidden']):
             ax[i, col].set_xlabel('Participation Rate')
 
         ax[i, METRIC_COL].set_ylabel(dataset_cols[k])
-        ax[i, DLP_COL].set_ylabel('Data Leverage Power')
+        ax[i, DLP_COL].set_ylabel('DLP')
         
-        ax[i, METRIC_COL].set_title(f'{nice_name}\nCompany-Perspective Performance')
-        ax[i, DLP_COL].set_title(f'{nice_name}\nData Leverage Power')
+        if name == 'co':
+            ax[i, METRIC_COL].set_title(f'{nice_name}\nCompany Perspective Performance')
+        else:
+            ax[i, METRIC_COL].set_title(f'{nice_name}\nFixed Holdout Performance')
+        ax[i, DLP_COL].set_title(f'{nice_name}\nData Leverage Power (DLP)')
 
         # UNCOMMENT TO SHOW TRANSFER BONUS ON PLOTS
         #ax[i, 1].text(0.5, 0.5, round(v['transfer_bonus'].max(), 2))
 
-        if i != 0:
+        if i != nrows -1:
             ax[i, 0].get_legend().remove()
             ax[i, 1].get_legend().remove()
 
+    
     fig.subplots_adjust(hspace=0.5, wspace=0.5)    
     fig.savefig(f'reports/{name}_summary.png', dpi=300)
 
+#%%
 
+for dfs, name in zip([co_dfs, hidden_dfs], ['co', 'hidden']):
+    for k, v in dfs.items():
+        v.to_csv(f'reports/{k}_{name}.csv')
+        print(name)
+        print(k, round(v.loc[v.frac == 0.2, 'small'],2)
 
+#%%
+dfs
 
 #%%
 fig, ax = plt.subplots(nrows, 1, figsize=(6, 6), sharex=True, sharey=True)
@@ -312,10 +334,8 @@ ax.set_xlabel('Fraction of Data Available')
 #ax.set_title('Forms of Data Leverage:\n Data Strikes and \nConscious Data Contribution')
 ax.set_title('')
 ax.get_legend().remove()
-ax.axvline(0.02, color='b', linestyle='--')
 ax.axvline(0.2, color='b', linestyle='--')
 ax.axvline(0.8, color='r', linestyle='--')
-ax.axvline(0.98, color='r', linestyle='--')
 fig.subplots_adjust(left=0.2, bottom=0.2, right=0.8, top=0.8)
 
 plt.savefig('reports/example.png', dpi=300)
